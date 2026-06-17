@@ -13,6 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ExpertDashboardRouteImport } from './routes/expert-dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ClinicalSourcesRouteImport } from './routes/clinical-sources'
 import { Route as AboutRouteImport } from './routes/about'
@@ -23,6 +24,7 @@ import { Route as AppScannerRouteImport } from './routes/_app.scanner'
 import { Route as AppReportRouteImport } from './routes/_app.report'
 import { Route as AppProgressRouteImport } from './routes/_app.progress'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
+import { Route as AppExpertReviewRouteImport } from './routes/_app.expert-review'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAssessmentRouteImport } from './routes/_app.assessment'
 import { Route as AppActionPlanRouteImport } from './routes/_app.action-plan'
@@ -45,6 +47,11 @@ const LoginRoute = LoginRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExpertDashboardRoute = ExpertDashboardRouteImport.update({
+  id: '/expert-dashboard',
+  path: '/expert-dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -96,6 +103,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
+const AppExpertReviewRoute = AppExpertReviewRouteImport.update({
+  id: '/expert-review',
+  path: '/expert-review',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -117,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/clinical-sources': typeof ClinicalSourcesRoute
   '/contact': typeof ContactRoute
+  '/expert-dashboard': typeof ExpertDashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -124,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/action-plan': typeof AppActionPlanRoute
   '/assessment': typeof AppAssessmentRoute
   '/dashboard': typeof AppDashboardRoute
+  '/expert-review': typeof AppExpertReviewRoute
   '/profile': typeof AppProfileRoute
   '/progress': typeof AppProgressRoute
   '/report': typeof AppReportRoute
@@ -135,6 +149,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/clinical-sources': typeof ClinicalSourcesRoute
   '/contact': typeof ContactRoute
+  '/expert-dashboard': typeof ExpertDashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -142,6 +157,7 @@ export interface FileRoutesByTo {
   '/action-plan': typeof AppActionPlanRoute
   '/assessment': typeof AppAssessmentRoute
   '/dashboard': typeof AppDashboardRoute
+  '/expert-review': typeof AppExpertReviewRoute
   '/profile': typeof AppProfileRoute
   '/progress': typeof AppProgressRoute
   '/report': typeof AppReportRoute
@@ -155,6 +171,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/clinical-sources': typeof ClinicalSourcesRoute
   '/contact': typeof ContactRoute
+  '/expert-dashboard': typeof ExpertDashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -162,6 +179,7 @@ export interface FileRoutesById {
   '/_app/action-plan': typeof AppActionPlanRoute
   '/_app/assessment': typeof AppAssessmentRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/expert-review': typeof AppExpertReviewRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/progress': typeof AppProgressRoute
   '/_app/report': typeof AppReportRoute
@@ -175,6 +193,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/clinical-sources'
     | '/contact'
+    | '/expert-dashboard'
     | '/forgot-password'
     | '/login'
     | '/privacy'
@@ -182,6 +201,7 @@ export interface FileRouteTypes {
     | '/action-plan'
     | '/assessment'
     | '/dashboard'
+    | '/expert-review'
     | '/profile'
     | '/progress'
     | '/report'
@@ -193,6 +213,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/clinical-sources'
     | '/contact'
+    | '/expert-dashboard'
     | '/forgot-password'
     | '/login'
     | '/privacy'
@@ -200,6 +221,7 @@ export interface FileRouteTypes {
     | '/action-plan'
     | '/assessment'
     | '/dashboard'
+    | '/expert-review'
     | '/profile'
     | '/progress'
     | '/report'
@@ -212,6 +234,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/clinical-sources'
     | '/contact'
+    | '/expert-dashboard'
     | '/forgot-password'
     | '/login'
     | '/privacy'
@@ -219,6 +242,7 @@ export interface FileRouteTypes {
     | '/_app/action-plan'
     | '/_app/assessment'
     | '/_app/dashboard'
+    | '/_app/expert-review'
     | '/_app/profile'
     | '/_app/progress'
     | '/_app/report'
@@ -232,6 +256,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   ClinicalSourcesRoute: typeof ClinicalSourcesRoute
   ContactRoute: typeof ContactRoute
+  ExpertDashboardRoute: typeof ExpertDashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -266,6 +291,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/expert-dashboard': {
+      id: '/expert-dashboard'
+      path: '/expert-dashboard'
+      fullPath: '/expert-dashboard'
+      preLoaderRoute: typeof ExpertDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -338,6 +370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/expert-review': {
+      id: '/_app/expert-review'
+      path: '/expert-review'
+      fullPath: '/expert-review'
+      preLoaderRoute: typeof AppExpertReviewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -366,6 +405,7 @@ interface AppRouteChildren {
   AppActionPlanRoute: typeof AppActionPlanRoute
   AppAssessmentRoute: typeof AppAssessmentRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppExpertReviewRoute: typeof AppExpertReviewRoute
   AppProfileRoute: typeof AppProfileRoute
   AppProgressRoute: typeof AppProgressRoute
   AppReportRoute: typeof AppReportRoute
@@ -377,6 +417,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppActionPlanRoute: AppActionPlanRoute,
   AppAssessmentRoute: AppAssessmentRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppExpertReviewRoute: AppExpertReviewRoute,
   AppProfileRoute: AppProfileRoute,
   AppProgressRoute: AppProgressRoute,
   AppReportRoute: AppReportRoute,
@@ -392,6 +433,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   ClinicalSourcesRoute: ClinicalSourcesRoute,
   ContactRoute: ContactRoute,
+  ExpertDashboardRoute: ExpertDashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,

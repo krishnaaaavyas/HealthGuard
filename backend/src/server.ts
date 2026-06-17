@@ -14,6 +14,8 @@ import { RiskDriverService } from "./services/riskDriver.service.js";
 import { FoodImpactService } from "./services/foodImpact.service.js";
 import { PredictionService } from "./services/prediction.service.js";
 import { BehaviorService } from "./services/behavior.service.js";
+import expertReviewRoutes from "./routes/expertReview.routes.js";
+
 
 dotenv.config();
 
@@ -23,6 +25,10 @@ const PORT = process.env.PORT || 5000;
 // Enable CORS and JSON body parsing
 app.use(cors({ origin: "*" }));
 app.use(express.json());
+
+// Mount Expert Review Routes
+app.use("/api/expert-review", expertReviewRoutes);
+
 
 // Zod schema for profile validation
 const ProfileSchema = z.object({

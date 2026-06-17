@@ -15,6 +15,7 @@ import {
   Download,
   TrendingDown,
   Info,
+  Stethoscope,
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -97,6 +98,38 @@ function Dashboard() {
   }
   const [riskDrivers, setRiskDrivers] = useState<RiskDriver[]>([]);
   const [driversLoading, setDriversLoading] = useState(false);
+
+  // Expert Review Status State
+  const [expertReviewStatus, setExpertReviewStatus] = useState<string | null>(null);
+
+  // Fetch expert review request status
+  useEffect(() => {
+    if (!result) return;
+    const fetchReviewStatus = async () => {
+      try {
+        let idToken = "mock-uid-guest";
+        if (auth.currentUser) idToken = await auth.currentUser.getIdToken();
+        const resp = await fetch(`${API_URL}/api/expert-review/my-requests`, {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.success && data.requests.length > 0) {
+            const latest = data.requests[0];
+            if (latest.status === "pending" || latest.status === "accepted" || latest.status === "completed") {
+              setExpertReviewStatus(latest.status);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch expert review status for dashboard:", err);
+      }
+    };
+    fetchReviewStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
 
   // Fetch action impacts once result is available
   useEffect(() => {
@@ -636,6 +669,37 @@ function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+
+        {/* Expert Review Card (Phase 9) */}
+        <Card className="border-border bg-surface shadow-card-soft mt-6">
+          <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="h-10 w-10 rounded-full bg-teal/15 text-teal flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
+                <Stethoscope className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-display text-sm font-bold text-foreground">
+                  Expert Clinical Review
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  {expertReviewStatus === "pending" && "Expert Review Status: Pending clinical specialist assignment. An expert will review your profile shortly."}
+                  {expertReviewStatus === "accepted" && "Expert Review Status: Accepted! Real-time clinical chat room is now active."}
+                  {expertReviewStatus === "completed" && "Expert Review Status: Review Completed! Click to view specialist feedback report."}
+                  {!expertReviewStatus && "Would you like a human medical expert to review your personalized health risk report?"}
+                </p>
+              </div>
+            </div>
+            <Button
+              asChild
+              className="bg-teal text-white hover:bg-teal/95 font-bold text-xs h-9 rounded-lg shrink-0 w-full sm:w-auto shadow-sm"
+            >
+              <Link to="/expert-review">
+                {expertReviewStatus ? "Check Status" : "Request Review"}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

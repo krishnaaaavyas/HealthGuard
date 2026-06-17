@@ -10,6 +10,7 @@ import {
   Brain,
   Sparkles,
   Activity,
+  Stethoscope,
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,8 +36,10 @@ const product = [
   { to: "/scanner", label: "Food Scanner", icon: ScanLine },
   { to: "/action-plan", label: "Action Plan", icon: Brain },
   { to: "/progress", label: "Progress", icon: Activity },
+  { to: "/expert-review", label: "Expert Review", icon: Stethoscope },
   { to: "/profile", label: "Profile", icon: User },
 ];
+
 
 const more = [
   { to: "/about", label: "About", icon: Info },
