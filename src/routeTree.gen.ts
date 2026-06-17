@@ -18,12 +18,13 @@ import { Route as ClinicalSourcesRouteImport } from './routes/clinical-sources'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppSimulatorRouteImport } from './routes/_app.simulator'
 import { Route as AppScannerRouteImport } from './routes/_app.scanner'
 import { Route as AppReportRouteImport } from './routes/_app.report'
+import { Route as AppProgressRouteImport } from './routes/_app.progress'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAssessmentRouteImport } from './routes/_app.assessment'
+import { Route as AppActionPlanRouteImport } from './routes/_app.action-plan'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -69,11 +70,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppSimulatorRoute = AppSimulatorRouteImport.update({
-  id: '/simulator',
-  path: '/simulator',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppScannerRoute = AppScannerRouteImport.update({
   id: '/scanner',
   path: '/scanner',
@@ -82,6 +78,11 @@ const AppScannerRoute = AppScannerRouteImport.update({
 const AppReportRoute = AppReportRouteImport.update({
   id: '/report',
   path: '/report',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProgressRoute = AppProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
@@ -99,6 +100,11 @@ const AppAssessmentRoute = AppAssessmentRouteImport.update({
   path: '/assessment',
   getParentRoute: () => AppRoute,
 } as any)
+const AppActionPlanRoute = AppActionPlanRouteImport.update({
+  id: '/action-plan',
+  path: '/action-plan',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -109,12 +115,13 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
+  '/action-plan': typeof AppActionPlanRoute
   '/assessment': typeof AppAssessmentRoute
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
+  '/progress': typeof AppProgressRoute
   '/report': typeof AppReportRoute
   '/scanner': typeof AppScannerRoute
-  '/simulator': typeof AppSimulatorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -125,12 +132,13 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
+  '/action-plan': typeof AppActionPlanRoute
   '/assessment': typeof AppAssessmentRoute
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
+  '/progress': typeof AppProgressRoute
   '/report': typeof AppReportRoute
   '/scanner': typeof AppScannerRoute
-  '/simulator': typeof AppSimulatorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,12 +151,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
+  '/_app/action-plan': typeof AppActionPlanRoute
   '/_app/assessment': typeof AppAssessmentRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/progress': typeof AppProgressRoute
   '/_app/report': typeof AppReportRoute
   '/_app/scanner': typeof AppScannerRoute
-  '/_app/simulator': typeof AppSimulatorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,12 +170,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/privacy'
     | '/signup'
+    | '/action-plan'
     | '/assessment'
     | '/dashboard'
     | '/profile'
+    | '/progress'
     | '/report'
     | '/scanner'
-    | '/simulator'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,12 +187,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/privacy'
     | '/signup'
+    | '/action-plan'
     | '/assessment'
     | '/dashboard'
     | '/profile'
+    | '/progress'
     | '/report'
     | '/scanner'
-    | '/simulator'
   id:
     | '__root__'
     | '/'
@@ -194,12 +205,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/privacy'
     | '/signup'
+    | '/_app/action-plan'
     | '/_app/assessment'
     | '/_app/dashboard'
     | '/_app/profile'
+    | '/_app/progress'
     | '/_app/report'
     | '/_app/scanner'
-    | '/_app/simulator'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -279,13 +291,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/simulator': {
-      id: '/_app/simulator'
-      path: '/simulator'
-      fullPath: '/simulator'
-      preLoaderRoute: typeof AppSimulatorRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/scanner': {
       id: '/_app/scanner'
       path: '/scanner'
@@ -298,6 +303,13 @@ declare module '@tanstack/react-router' {
       path: '/report'
       fullPath: '/report'
       preLoaderRoute: typeof AppReportRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/progress': {
+      id: '/_app/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof AppProgressRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/profile': {
@@ -321,25 +333,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssessmentRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/action-plan': {
+      id: '/_app/action-plan'
+      path: '/action-plan'
+      fullPath: '/action-plan'
+      preLoaderRoute: typeof AppActionPlanRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppActionPlanRoute: typeof AppActionPlanRoute
   AppAssessmentRoute: typeof AppAssessmentRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppProgressRoute: typeof AppProgressRoute
   AppReportRoute: typeof AppReportRoute
   AppScannerRoute: typeof AppScannerRoute
-  AppSimulatorRoute: typeof AppSimulatorRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppActionPlanRoute: AppActionPlanRoute,
   AppAssessmentRoute: AppAssessmentRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppProfileRoute: AppProfileRoute,
+  AppProgressRoute: AppProgressRoute,
   AppReportRoute: AppReportRoute,
   AppScannerRoute: AppScannerRoute,
-  AppSimulatorRoute: AppSimulatorRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

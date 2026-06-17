@@ -32,10 +32,9 @@ import { cn } from "@/lib/utils";
 const product = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/assessment", label: "Assessment", icon: ClipboardList },
-  { to: "/dashboard", search: { tab: "ai-coach" }, label: "AI Coach", icon: Brain },
-  { to: "/simulator", label: "Simulator", icon: Sparkles },
-  { to: "/dashboard", search: { tab: "progress" }, label: "Progress", icon: Activity },
-  { to: "/scanner", label: "Scanner", icon: ScanLine },
+  { to: "/scanner", label: "Food Scanner", icon: ScanLine },
+  { to: "/action-plan", label: "Action Plan", icon: Brain },
+  { to: "/progress", label: "Progress", icon: Activity },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
@@ -67,7 +66,7 @@ export function AppSidebar() {
           </div>
           <div className="leading-tight min-w-0 transition-all duration-300 origin-left group-data-[state=collapsed]:opacity-0 group-data-[state=collapsed]:pointer-events-none group-data-[state=collapsed]:scale-x-75 group-data-[state=collapsed]:w-0 group-data-[state=collapsed]:translate-x-4">
             <div className="font-display text-sm font-bold text-sidebar-foreground truncate tracking-wide">
-               HealthGuard
+              HealthGuard
             </div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-teal/85 truncate">
               Health Insights

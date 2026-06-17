@@ -23,7 +23,7 @@ export class PredictionService {
   static generateForecast(
     profile: UserProfile,
     selectedActions: string[],
-    progressLogsCount: number = 0
+    progressLogsCount: number = 0,
   ): PredictionForecastResult {
     // 1. Calculate current base risk
     const currentAnalysis = RiskService.analyze(profile);
@@ -51,7 +51,13 @@ export class PredictionService {
       if (lower.includes("alcohol") || lower.includes("limit alcohol") || lower.includes("drink")) {
         hasAlcohol = true;
       }
-      if (lower.includes("lose") || lower.includes("weight") || lower.includes("bmi") || lower.includes("kilograms") || lower.includes("kg")) {
+      if (
+        lower.includes("lose") ||
+        lower.includes("weight") ||
+        lower.includes("bmi") ||
+        lower.includes("kilograms") ||
+        lower.includes("kg")
+      ) {
         hasWeightLoss = true;
       }
     });
@@ -104,22 +110,23 @@ export class PredictionService {
 
     // 5. Determine confidence levels
     // Confidence is higher when there is more progress history and fewer heavy assumptions
-    const numAssumptions = (hasExercise ? 1 : 0) + (hasSmoking ? 1 : 0) + (hasAlcohol ? 1 : 0) + (hasWeightLoss ? 1 : 0);
-    
+    const numAssumptions =
+      (hasExercise ? 1 : 0) + (hasSmoking ? 1 : 0) + (hasAlcohol ? 1 : 0) + (hasWeightLoss ? 1 : 0);
+
     const calculateConfidence = (daysAhead: number): "Low" | "Moderate" | "High" => {
       let score = 0;
-      
+
       // Data quality
       if (profile.familyHistory && profile.familyHistory.length > 5) score += 1;
       if (profile.symptoms && profile.symptoms.length > 5) score += 1;
-      
+
       // Logs count
       if (progressLogsCount >= 3) score += 2;
       else if (progressLogsCount >= 1) score += 1;
-      
+
       // Deduct for too many speculative assumptions
       if (numAssumptions > 2) score -= 1;
-      
+
       // Time horizon decay
       if (daysAhead === 90) score -= 0.5;
       if (daysAhead === 180) score -= 1.5;
@@ -136,22 +143,22 @@ export class PredictionService {
         confidence: calculateConfidence(30),
         projectedWeightKg: profile30.weightKg,
         projectedExercise: profile30.exercise,
-        projectedSmoking: profile30.smoking
+        projectedSmoking: profile30.smoking,
       },
       days90: {
         risk: analysis90.overallRisk,
         confidence: calculateConfidence(90),
         projectedWeightKg: profile90.weightKg,
         projectedExercise: profile90.exercise,
-        projectedSmoking: profile90.smoking
+        projectedSmoking: profile90.smoking,
       },
       days180: {
         risk: analysis180.overallRisk,
         confidence: calculateConfidence(180),
         projectedWeightKg: profile180.weightKg,
         projectedExercise: profile180.exercise,
-        projectedSmoking: profile180.smoking
-      }
+        projectedSmoking: profile180.smoking,
+      },
     };
   }
 }

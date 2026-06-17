@@ -52,7 +52,10 @@ export class RiskService {
   /**
    * Calculate Body Mass Index (BMI) and categorize
    */
-  static calculateBMI(heightCm: number, weightKg: number): { bmi: number; category: "Underweight" | "Normal" | "Overweight" | "Obese" } {
+  static calculateBMI(
+    heightCm: number,
+    weightKg: number,
+  ): { bmi: number; category: "Underweight" | "Normal" | "Overweight" | "Obese" } {
     const bmi = Number((weightKg / Math.pow(heightCm / 100, 2)).toFixed(1));
     let category: "Underweight" | "Normal" | "Overweight" | "Obese" = "Normal";
 
@@ -81,17 +84,20 @@ export class RiskService {
     if (profile.age >= 45 && profile.age <= 54) agePts = 2;
     else if (profile.age >= 55 && profile.age <= 64) agePts = 3;
     else if (profile.age > 64) agePts = 4;
-    
+
     if (agePts > 0) {
       score += agePts;
-      factors.push({ name: `Age ${profile.age} (Demographics)`, impact: Math.round((agePts / 15) * 100) });
+      factors.push({
+        name: `Age ${profile.age} (Demographics)`,
+        impact: Math.round((agePts / 15) * 100),
+      });
     }
 
     // 2. BMI (Max 3 points)
     let bmiPts = 0;
     if (bmi >= 25 && bmi < 30) bmiPts = 2;
     else if (bmi >= 30) bmiPts = 4;
-    
+
     if (bmiPts > 0) {
       score += bmiPts;
       factors.push({ name: `Elevated BMI (${bmi})`, impact: Math.round((bmiPts / 15) * 100) });
@@ -124,13 +130,22 @@ export class RiskService {
     }
     if (fhPts > 0) {
       score += fhPts;
-      factors.push({ name: "Genetic Predisposition (Family History of Diabetes)", impact: Math.round((fhPts / 15) * 100) });
+      factors.push({
+        name: "Genetic Predisposition (Family History of Diabetes)",
+        impact: Math.round((fhPts / 15) * 100),
+      });
     }
 
     // 5. Diet Quality Heuristics (Max 1 point)
     let dietPts = 0;
     const allText = (profile.symptoms + " " + profile.familyHistory).toLowerCase();
-    if (allText.includes("sweet") || allText.includes("sugar") || allText.includes("junk") || allText.includes("soda") || allText.includes("fast food")) {
+    if (
+      allText.includes("sweet") ||
+      allText.includes("sugar") ||
+      allText.includes("junk") ||
+      allText.includes("soda") ||
+      allText.includes("fast food")
+    ) {
       dietPts = 1;
       score += 1;
       factors.push({ name: "Unbalanced Dietary Indicators", impact: Math.round((1 / 15) * 100) });
@@ -139,7 +154,13 @@ export class RiskService {
     // 6. Symptoms (Max 2 points)
     let sxPts = 0;
     const sxLower = profile.symptoms.toLowerCase();
-    if (sxLower.includes("thirst") || sxLower.includes("urination") || sxLower.includes("fatigue") || sxLower.includes("dry mouth") || sxLower.includes("polyuria")) {
+    if (
+      sxLower.includes("thirst") ||
+      sxLower.includes("urination") ||
+      sxLower.includes("fatigue") ||
+      sxLower.includes("dry mouth") ||
+      sxLower.includes("polyuria")
+    ) {
       sxPts = 2;
       score += 2;
       factors.push({ name: "Reported Metabolic Symptoms", impact: Math.round((2 / 15) * 100) });
@@ -173,7 +194,10 @@ export class RiskService {
 
     if (agePts > 0) {
       score += agePts;
-      factors.push({ name: `Age ${profile.age} (Framingham Factor)`, impact: Math.round((agePts / 20) * 100) });
+      factors.push({
+        name: `Age ${profile.age} (Framingham Factor)`,
+        impact: Math.round((agePts / 20) * 100),
+      });
     }
 
     // 2. BMI (Max 2 points)
@@ -183,7 +207,10 @@ export class RiskService {
 
     if (bmiPts > 0) {
       score += bmiPts;
-      factors.push({ name: `Weight Burden (BMI: ${bmi})`, impact: Math.round((bmiPts / 20) * 100) });
+      factors.push({
+        name: `Weight Burden (BMI: ${bmi})`,
+        impact: Math.round((bmiPts / 20) * 100),
+      });
     }
 
     // 3. Smoking (Max 4 points)
@@ -193,28 +220,54 @@ export class RiskService {
 
     if (smokePts > 0) {
       score += smokePts;
-      factors.push({ name: `Tobacco/Smoking Status (${profile.smoking})`, impact: Math.round((smokePts / 20) * 100) });
+      factors.push({
+        name: `Tobacco/Smoking Status (${profile.smoking})`,
+        impact: Math.round((smokePts / 20) * 100),
+      });
     }
 
     // 4. Exercise (Max 2 points)
     if (profile.exercise === "none" || profile.exercise === "light") {
       score += 3;
-      factors.push({ name: "Lack of Cardiovascular Conditioning", impact: Math.round((3 / 20) * 100) });
+      factors.push({
+        name: "Lack of Cardiovascular Conditioning",
+        impact: Math.round((3 / 20) * 100),
+      });
     }
 
     // 5. Family History (Max 3 points)
     let fhPts = 0;
     const fhLower = profile.familyHistory.toLowerCase();
-    if (fhLower.includes("heart") || fhLower.includes("cardiac") || fhLower.includes("stroke") || fhLower.includes("bypass") || fhLower.includes("infarct")) {
+    if (
+      fhLower.includes("heart") ||
+      fhLower.includes("cardiac") ||
+      fhLower.includes("stroke") ||
+      fhLower.includes("bypass") ||
+      fhLower.includes("infarct")
+    ) {
       fhPts = 3;
       score += 3;
-      factors.push({ name: "Family History of Coronary Heart Disease", impact: Math.round((3 / 20) * 100) });
+      factors.push({
+        name: "Family History of Coronary Heart Disease",
+        impact: Math.round((3 / 20) * 100),
+      });
     }
 
     // 6. Hypertension History (Max 3 points)
     let htPts = 0;
-    const allText = (profile.symptoms + " " + profile.familyHistory + " " + (profile.diseases || "")).toLowerCase();
-    if (allText.includes("hypertension") || allText.includes("bp") || allText.includes("blood pressure") || allText.includes("pressure")) {
+    const allText = (
+      profile.symptoms +
+      " " +
+      profile.familyHistory +
+      " " +
+      (profile.diseases || "")
+    ).toLowerCase();
+    if (
+      allText.includes("hypertension") ||
+      allText.includes("bp") ||
+      allText.includes("blood pressure") ||
+      allText.includes("pressure")
+    ) {
       htPts = 3;
       score += 3;
       factors.push({ name: "Hypertensive Indicators", impact: Math.round((3 / 20) * 100) });
@@ -244,7 +297,10 @@ export class RiskService {
 
     if (agePts > 0) {
       score += agePts;
-      factors.push({ name: `Vascular Strain by Age (${profile.age} yrs)`, impact: Math.round((agePts / 14) * 100) });
+      factors.push({
+        name: `Vascular Strain by Age (${profile.age} yrs)`,
+        impact: Math.round((agePts / 14) * 100),
+      });
     }
 
     // 2. BMI / Weight (Max 3 points)
@@ -254,7 +310,10 @@ export class RiskService {
 
     if (weightPts > 0) {
       score += weightPts;
-      factors.push({ name: `Elevated Body Mass Index (${bmi})`, impact: Math.round((weightPts / 14) * 100) });
+      factors.push({
+        name: `Elevated Body Mass Index (${bmi})`,
+        impact: Math.round((weightPts / 14) * 100),
+      });
     }
 
     // 3. Exercise (Max 2 points)
@@ -270,7 +329,10 @@ export class RiskService {
 
     if (smokePts > 0) {
       score += smokePts;
-      factors.push({ name: `Vasoconstriction Risk (Smoking: ${profile.smoking})`, impact: Math.round((smokePts / 14) * 100) });
+      factors.push({
+        name: `Vasoconstriction Risk (Smoking: ${profile.smoking})`,
+        impact: Math.round((smokePts / 14) * 100),
+      });
     }
 
     // 5. Alcohol (Max 3 points)
@@ -280,9 +342,19 @@ export class RiskService {
 
     if (alcVal.includes("heavy") || alcVal.includes("frequent")) {
       alcPts = 3;
-    } else if (alcVal.includes("occasional") || alcVal.includes("moderate") || alcVal.includes("drink")) {
+    } else if (
+      alcVal.includes("occasional") ||
+      alcVal.includes("moderate") ||
+      alcVal.includes("drink")
+    ) {
       alcPts = 1;
-    } else if (allText.includes("alcohol") || allText.includes("drinking") || allText.includes("beer") || allText.includes("wine") || allText.includes("whiskey")) {
+    } else if (
+      allText.includes("alcohol") ||
+      allText.includes("drinking") ||
+      allText.includes("beer") ||
+      allText.includes("wine") ||
+      allText.includes("whiskey")
+    ) {
       alcPts = 1;
     }
 
@@ -294,10 +366,18 @@ export class RiskService {
     // 6. Family History (Max 3 points)
     let fhPts = 0;
     const fhLower = profile.familyHistory.toLowerCase();
-    if (fhLower.includes("bp") || fhLower.includes("hypertension") || fhLower.includes("blood pressure") || fhLower.includes("pressure")) {
+    if (
+      fhLower.includes("bp") ||
+      fhLower.includes("hypertension") ||
+      fhLower.includes("blood pressure") ||
+      fhLower.includes("pressure")
+    ) {
       fhPts = 3;
       score += 3;
-      factors.push({ name: "Genetic Predisposition to Hypertension", impact: Math.round((3 / 14) * 100) });
+      factors.push({
+        name: "Genetic Predisposition to Hypertension",
+        impact: Math.round((3 / 14) * 100),
+      });
     }
 
     const risk = Math.min(100, Math.round((score / 14) * 100));
@@ -313,7 +393,11 @@ export class RiskService {
   /**
    * Combine risks into Overall Score
    */
-  static calculateOverallHealthScore(diabetes: number, heart: number, hypertension: number): { overallRisk: number; overallRiskLabel: "Low" | "Moderate" | "High" } {
+  static calculateOverallHealthScore(
+    diabetes: number,
+    heart: number,
+    hypertension: number,
+  ): { overallRisk: number; overallRiskLabel: "Low" | "Moderate" | "High" } {
     const overallRisk = Math.round((diabetes + heart + hypertension) / 3);
     const overallRiskLabel = overallRisk <= 30 ? "Low" : overallRisk <= 60 ? "Moderate" : "High";
     return { overallRisk, overallRiskLabel };
@@ -322,7 +406,11 @@ export class RiskService {
   /**
    * Sort factors aggregated by impact
    */
-  static aggregateFactors(diabetesFactors: Factor[], heartFactors: Factor[], hyperFactors: Factor[]): Factor[] {
+  static aggregateFactors(
+    diabetesFactors: Factor[],
+    heartFactors: Factor[],
+    hyperFactors: Factor[],
+  ): Factor[] {
     const map = new Map<string, number>();
 
     const add = (f: Factor) => {
@@ -378,7 +466,10 @@ export class RiskService {
         const mod = { ...profile, weightKg: targetWeight };
         const drop = runPipe(mod) - currentOverallRisk;
         if (drop < 0) {
-          priorities.push({ action: `Lose ${kgsToLose}kg to achieve a healthy BMI`, estimatedImpact: drop });
+          priorities.push({
+            action: `Lose ${kgsToLose}kg to achieve a healthy BMI`,
+            estimatedImpact: drop,
+          });
         }
       }
     }
@@ -394,7 +485,12 @@ export class RiskService {
 
     // 4. Simulate reducing alcohol
     const alcVal = (profile.alcohol || "").toLowerCase();
-    if (alcVal.includes("heavy") || alcVal.includes("occasional") || alcVal.includes("moderate") || alcVal.includes("drink")) {
+    if (
+      alcVal.includes("heavy") ||
+      alcVal.includes("occasional") ||
+      alcVal.includes("moderate") ||
+      alcVal.includes("drink")
+    ) {
       const mod = { ...profile, alcohol: "never" };
       const drop = runPipe(mod) - currentOverallRisk;
       if (drop < 0) {
@@ -404,11 +500,21 @@ export class RiskService {
 
     // 5. Simulate resolving symptoms
     const sxLower = profile.symptoms.toLowerCase();
-    if (sxLower.includes("thirst") || sxLower.includes("urination") || sxLower.includes("fatigue") || sxLower.includes("dry mouth") || sxLower.includes("headache") || sxLower.includes("dizz")) {
+    if (
+      sxLower.includes("thirst") ||
+      sxLower.includes("urination") ||
+      sxLower.includes("fatigue") ||
+      sxLower.includes("dry mouth") ||
+      sxLower.includes("headache") ||
+      sxLower.includes("dizz")
+    ) {
       const mod = { ...profile, symptoms: "" };
       const drop = runPipe(mod) - currentOverallRisk;
       if (drop < 0) {
-        priorities.push({ action: "Consult physician to address active symptoms", estimatedImpact: drop });
+        priorities.push({
+          action: "Consult physician to address active symptoms",
+          estimatedImpact: drop,
+        });
       }
     }
 
@@ -419,49 +525,76 @@ export class RiskService {
   /**
    * Deterministic Plan Generator for offline / core fallback support
    */
-  static generateDeterministicPlans(profile: UserProfile, scores: { diabetes: number; heart: number; hypertension: number }): { rationale: CompleteRiskAnalysis["rationale"]; dietPlan: string; exercisePlan: string; preventionTips: string } {
+  static generateDeterministicPlans(
+    profile: UserProfile,
+    scores: { diabetes: number; heart: number; hypertension: number },
+  ): {
+    rationale: CompleteRiskAnalysis["rationale"];
+    dietPlan: string;
+    exercisePlan: string;
+    preventionTips: string;
+  } {
     // 1. Rationale Builder
-    const dbReason = scores.diabetes > 50 
-      ? `Your elevated Diabetes Risk (${scores.diabetes}%) is driven by indicators including a BMI of ${(profile.weightKg / Math.pow(profile.heightCm / 100, 2)).toFixed(1)} and sedentary lifestyle parameters.`
-      : `Your Diabetes Risk (${scores.diabetes}%) is low/moderate due to balanced demographic and lifestyle markers.`;
+    const dbReason =
+      scores.diabetes > 50
+        ? `Your elevated Diabetes Risk (${scores.diabetes}%) is driven by indicators including a BMI of ${(profile.weightKg / Math.pow(profile.heightCm / 100, 2)).toFixed(1)} and sedentary lifestyle parameters.`
+        : `Your Diabetes Risk (${scores.diabetes}%) is low/moderate due to balanced demographic and lifestyle markers.`;
 
-    const heartReason = scores.heart > 50
-      ? `Your high Heart Disease Risk (${scores.heart}%) is influenced by cardiovascular parameters such as age (${profile.age}), smoking status (${profile.smoking}), and weight.`
-      : `Your Heart Disease Risk (${scores.heart}%) remains low/moderate based on reported profiles.`;
+    const heartReason =
+      scores.heart > 50
+        ? `Your high Heart Disease Risk (${scores.heart}%) is influenced by cardiovascular parameters such as age (${profile.age}), smoking status (${profile.smoking}), and weight.`
+        : `Your Heart Disease Risk (${scores.heart}%) remains low/moderate based on reported profiles.`;
 
-    const htReason = scores.hypertension > 50
-      ? `Your elevated Hypertension Risk (${scores.hypertension}%) suggests vascular strain indicators driven by family history, weight profile, or reported habits.`
-      : `Your Hypertension Risk (${scores.hypertension}%) indicates normal baseline vascular markers.`;
+    const htReason =
+      scores.hypertension > 50
+        ? `Your elevated Hypertension Risk (${scores.hypertension}%) suggests vascular strain indicators driven by family history, weight profile, or reported habits.`
+        : `Your Hypertension Risk (${scores.hypertension}%) indicates normal baseline vascular markers.`;
 
     // 2. Diet plan builder
     let dietParts = ["Dietary Recommendation Summary:\n"];
     if (scores.diabetes > 50) {
-      dietParts.push("- Choose complex carbohydrates (oats, brown rice, whole wheat) over refined flour.\n- Include high-fiber pulses, legumes, and lean proteins in every meal.\n- Minimize processed sugar, sweet snacks, and soda intakes.");
+      dietParts.push(
+        "- Choose complex carbohydrates (oats, brown rice, whole wheat) over refined flour.\n- Include high-fiber pulses, legumes, and lean proteins in every meal.\n- Minimize processed sugar, sweet snacks, and soda intakes.",
+      );
     }
     if (scores.hypertension > 50) {
-      dietParts.push("- Follow DASH dietary guidelines, restricting daily sodium to under 2,000 mg.\n- Avoid pickles, processed meats, papad, and salty snacks.\n- Boost potassium intake by eating leafy greens, bananas, and yogurt.");
+      dietParts.push(
+        "- Follow DASH dietary guidelines, restricting daily sodium to under 2,000 mg.\n- Avoid pickles, processed meats, papad, and salty snacks.\n- Boost potassium intake by eating leafy greens, bananas, and yogurt.",
+      );
     }
     if (dietParts.length === 1) {
-      dietParts.push("- Maintain a balanced intake of protein, healthy fats (olive/mustard oil, nuts), and green vegetables.\n- Practice mindful portion control and drink 2.5L of water daily.");
+      dietParts.push(
+        "- Maintain a balanced intake of protein, healthy fats (olive/mustard oil, nuts), and green vegetables.\n- Practice mindful portion control and drink 2.5L of water daily.",
+      );
     }
 
     // 3. Exercise plan builder
     let exParts = ["Exercise Routine Guidelines:\n"];
     if (profile.exercise === "none" || profile.exercise === "light") {
-      exParts.push("- Start with a daily 15-20 minute brisk walk.\n- Incorporate gentle mobility, joint rotations, and calf stretches.\n- Aim for a target of 150 minutes of light cardio per week.");
+      exParts.push(
+        "- Start with a daily 15-20 minute brisk walk.\n- Incorporate gentle mobility, joint rotations, and calf stretches.\n- Aim for a target of 150 minutes of light cardio per week.",
+      );
     } else {
-      exParts.push("- Continue with moderate/active workouts (30-45 mins 5x/week).\n- Integrate strength conditioning (squats, planks, lunges) 2 days a week.\n- Prioritize post-exercise stretching and hydration.");
+      exParts.push(
+        "- Continue with moderate/active workouts (30-45 mins 5x/week).\n- Integrate strength conditioning (squats, planks, lunges) 2 days a week.\n- Prioritize post-exercise stretching and hydration.",
+      );
     }
 
     // 4. Prevention tips
     let prevTips = ["Key Preventive Health Targets:\n"];
     if (profile.smoking === "current") {
-      prevTips.push("- Seek counseling or nicotine replacement therapy to quit smoking completely.\n");
+      prevTips.push(
+        "- Seek counseling or nicotine replacement therapy to quit smoking completely.\n",
+      );
     }
     if (scores.diabetes > 30 || scores.heart > 30 || scores.hypertension > 30) {
-      prevTips.push("- Monitor fasting blood sugar and resting blood pressure quarterly.\n- Undergo a comprehensive annual lipid panel test.\n");
+      prevTips.push(
+        "- Monitor fasting blood sugar and resting blood pressure quarterly.\n- Undergo a comprehensive annual lipid panel test.\n",
+      );
     }
-    prevTips.push("- Maintain healthy sleep hygiene (7-8 hours per night) to regulate metabolic strain.\n- Practice deep breathing or meditation to lower chronic cortisol levels.");
+    prevTips.push(
+      "- Maintain healthy sleep hygiene (7-8 hours per night) to regulate metabolic strain.\n- Practice deep breathing or meditation to lower chronic cortisol levels.",
+    );
 
     return {
       rationale: {
@@ -488,13 +621,13 @@ export class RiskService {
     const { overallRisk, overallRiskLabel } = this.calculateOverallHealthScore(
       diabetesRisk.risk,
       heartRisk.risk,
-      hypertensionRisk.risk
+      hypertensionRisk.risk,
     );
 
     const factors = this.aggregateFactors(
       diabetesRisk.factors,
       heartRisk.factors,
-      hypertensionRisk.factors
+      hypertensionRisk.factors,
     );
 
     const actionPriorities = this.getActionPriorities(profile, overallRisk);
@@ -584,13 +717,24 @@ export class RiskService {
     const fhDb = Math.round((fhDbPts / 15) * 100);
 
     let fhHeartPts = 0;
-    if (fhLower.includes("heart") || fhLower.includes("cardiac") || fhLower.includes("stroke") || fhLower.includes("bypass") || fhLower.includes("infarct")) {
+    if (
+      fhLower.includes("heart") ||
+      fhLower.includes("cardiac") ||
+      fhLower.includes("stroke") ||
+      fhLower.includes("bypass") ||
+      fhLower.includes("infarct")
+    ) {
       fhHeartPts = 3;
     }
     const fhHeart = Math.round((fhHeartPts / 20) * 100);
 
     let fhHtPts = 0;
-    if (fhLower.includes("bp") || fhLower.includes("hypertension") || fhLower.includes("blood pressure") || fhLower.includes("pressure")) {
+    if (
+      fhLower.includes("bp") ||
+      fhLower.includes("hypertension") ||
+      fhLower.includes("blood pressure") ||
+      fhLower.includes("pressure")
+    ) {
       fhHtPts = 3;
     }
     const fhHt = Math.round((fhHtPts / 14) * 100);
@@ -616,9 +760,19 @@ export class RiskService {
     const allText = (profile.symptoms + " " + profile.familyHistory).toLowerCase();
     if (alcVal.includes("heavy") || alcVal.includes("frequent")) {
       alcHtPts = 3;
-    } else if (alcVal.includes("occasional") || alcVal.includes("moderate") || alcVal.includes("drink")) {
+    } else if (
+      alcVal.includes("occasional") ||
+      alcVal.includes("moderate") ||
+      alcVal.includes("drink")
+    ) {
       alcHtPts = 1;
-    } else if (allText.includes("alcohol") || allText.includes("drinking") || allText.includes("beer") || allText.includes("wine") || allText.includes("whiskey")) {
+    } else if (
+      allText.includes("alcohol") ||
+      allText.includes("drinking") ||
+      allText.includes("beer") ||
+      allText.includes("wine") ||
+      allText.includes("whiskey")
+    ) {
       alcHtPts = 1;
     }
     const scoreAlcohol = Math.round((alcHtPts / 14) * 100);
@@ -626,7 +780,13 @@ export class RiskService {
 
     // 7. Diet
     let dietDbPts = 0;
-    if (allText.includes("sweet") || allText.includes("sugar") || allText.includes("junk") || allText.includes("soda") || allText.includes("fast food")) {
+    if (
+      allText.includes("sweet") ||
+      allText.includes("sugar") ||
+      allText.includes("junk") ||
+      allText.includes("soda") ||
+      allText.includes("fast food")
+    ) {
       dietDbPts = 1;
     }
     const scoreDiet = Math.round((dietDbPts / 15) * 100);
@@ -635,7 +795,13 @@ export class RiskService {
     // 8. Symptoms
     let sxDbPts = 0;
     const sxLower = profile.symptoms.toLowerCase();
-    if (sxLower.includes("thirst") || sxLower.includes("urination") || sxLower.includes("fatigue") || sxLower.includes("dry mouth") || sxLower.includes("polyuria")) {
+    if (
+      sxLower.includes("thirst") ||
+      sxLower.includes("urination") ||
+      sxLower.includes("fatigue") ||
+      sxLower.includes("dry mouth") ||
+      sxLower.includes("polyuria")
+    ) {
       sxDbPts = 2;
     }
     const scoreSymptoms = Math.round((sxDbPts / 15) * 100);
@@ -643,8 +809,19 @@ export class RiskService {
 
     // 9. Hypertension History
     let htHeartPts = 0;
-    const allTextHt = (profile.symptoms + " " + profile.familyHistory + " " + (profile.diseases || "")).toLowerCase();
-    if (allTextHt.includes("hypertension") || allTextHt.includes("bp") || allTextHt.includes("blood pressure") || allTextHt.includes("pressure")) {
+    const allTextHt = (
+      profile.symptoms +
+      " " +
+      profile.familyHistory +
+      " " +
+      (profile.diseases || "")
+    ).toLowerCase();
+    if (
+      allTextHt.includes("hypertension") ||
+      allTextHt.includes("bp") ||
+      allTextHt.includes("blood pressure") ||
+      allTextHt.includes("pressure")
+    ) {
       htHeartPts = 3;
     }
     const scoreHtHistory = Math.round((htHeartPts / 20) * 100);
@@ -659,8 +836,8 @@ export class RiskService {
       { factor: "ALCOHOL", score: scoreAlcoholOverall },
       { factor: "DIET", score: scoreDietOverall },
       { factor: "SYMPTOMS", score: scoreSymptomsOverall },
-      { factor: "HYPERTENSION_HISTORY", score: scoreHtHistoryOverall }
-    ].filter(f => f.score > 0);
+      { factor: "HYPERTENSION_HISTORY", score: scoreHtHistoryOverall },
+    ].filter((f) => f.score > 0);
 
     return {
       bmi,

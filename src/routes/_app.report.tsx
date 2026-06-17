@@ -217,10 +217,14 @@ function ReportPage() {
       // Milestones achieved list
       const milestonesList: string[] = [];
       if (baseline.weightKg - latest.weightKg >= 5) {
-        milestonesList.push(`🎉 Weight Loss Milestone: Lost ${(baseline.weightKg - latest.weightKg).toFixed(1)}kg since first assessment.`);
+        milestonesList.push(
+          `🎉 Weight Loss Milestone: Lost ${(baseline.weightKg - latest.weightKg).toFixed(1)}kg since first assessment.`,
+        );
       }
       if (baseline.overallScore - latest.overallScore >= 10) {
-        milestonesList.push(`🎉 Risk Reduction Milestone: Overall risk score reduced by ${baseline.overallScore - latest.overallScore} points.`);
+        milestonesList.push(
+          `🎉 Risk Reduction Milestone: Overall risk score reduced by ${baseline.overallScore - latest.overallScore} points.`,
+        );
       }
       if (milestonesList.length > 0) {
         ensureSpace(60);
@@ -392,12 +396,20 @@ function ReportPage() {
             <Section title="Longitudinal Progress & Trends">
               <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                 <div className="rounded-lg border border-border bg-surface-muted/60 p-4">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase font-display">Weight Evolution</span>
+                  <span className="text-xs text-muted-foreground font-semibold uppercase font-display">
+                    Weight Evolution
+                  </span>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-xl font-bold text-foreground">{history[history.length - 1].weightKg} kg</span>
-                    <span className="text-xs text-muted-foreground">vs {history[0].weightKg} kg baseline</span>
+                    <span className="text-xl font-bold text-foreground">
+                      {history[history.length - 1].weightKg} kg
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      vs {history[0].weightKg} kg baseline
+                    </span>
                   </div>
-                  <span className={`text-xs font-bold mt-1.5 block ${history[history.length - 1].weightKg - history[0].weightKg <= 0 ? "text-success" : "text-danger"}`}>
+                  <span
+                    className={`text-xs font-bold mt-1.5 block ${history[history.length - 1].weightKg - history[0].weightKg <= 0 ? "text-success" : "text-danger"}`}
+                  >
                     {history[history.length - 1].weightKg - history[0].weightKg <= 0
                       ? `▼ ${(history[0].weightKg - history[history.length - 1].weightKg).toFixed(1)} kg lost`
                       : `▲ ${(history[history.length - 1].weightKg - history[0].weightKg).toFixed(1)} kg gained`}
@@ -405,12 +417,20 @@ function ReportPage() {
                 </div>
 
                 <div className="rounded-lg border border-border bg-surface-muted/60 p-4">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase font-display">Risk Score Change</span>
+                  <span className="text-xs text-muted-foreground font-semibold uppercase font-display">
+                    Risk Score Change
+                  </span>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-xl font-bold text-foreground">{history[history.length - 1].overallScore} pts</span>
-                    <span className="text-xs text-muted-foreground">vs {history[0].overallScore} pts baseline</span>
+                    <span className="text-xl font-bold text-foreground">
+                      {history[history.length - 1].overallScore} pts
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      vs {history[0].overallScore} pts baseline
+                    </span>
                   </div>
-                  <span className={`text-xs font-bold mt-1.5 block ${history[history.length - 1].overallScore - history[0].overallScore <= 0 ? "text-success" : "text-warning"}`}>
+                  <span
+                    className={`text-xs font-bold mt-1.5 block ${history[history.length - 1].overallScore - history[0].overallScore <= 0 ? "text-success" : "text-warning"}`}
+                  >
                     {history[history.length - 1].overallScore - history[0].overallScore <= 0
                       ? `▼ ${history[0].overallScore - history[history.length - 1].overallScore} pts improved`
                       : `▲ ${history[history.length - 1].overallScore - history[0].overallScore} pts increased`}
@@ -418,13 +438,21 @@ function ReportPage() {
                 </div>
 
                 <div className="rounded-lg border border-border bg-surface-muted/60 p-4 sm:col-span-2 md:col-span-1">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase font-display">BMI Evolution</span>
+                  <span className="text-xs text-muted-foreground font-semibold uppercase font-display">
+                    BMI Evolution
+                  </span>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-xl font-bold text-foreground">{history[history.length - 1].bmi.toFixed(1)}</span>
-                    <span className="text-xs text-muted-foreground">vs {history[0].bmi.toFixed(1)} baseline</span>
+                    <span className="text-xl font-bold text-foreground">
+                      {history[history.length - 1].bmi.toFixed(1)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      vs {history[0].bmi.toFixed(1)} baseline
+                    </span>
                   </div>
-                  <span className={`text-xs font-bold mt-1.5 block ${history[history.length - 1].bmi - history[0].bmi <= 0 ? "text-success" : "text-warning"}`}>
-                    {(history[history.length - 1].bmi - history[0].bmi) <= 0
+                  <span
+                    className={`text-xs font-bold mt-1.5 block ${history[history.length - 1].bmi - history[0].bmi <= 0 ? "text-success" : "text-warning"}`}
+                  >
+                    {history[history.length - 1].bmi - history[0].bmi <= 0
                       ? `▼ ${(history[0].bmi - history[history.length - 1].bmi).toFixed(1)} points improved`
                       : `▲ ${(history[history.length - 1].bmi - history[0].bmi).toFixed(1)} points increased`}
                   </span>

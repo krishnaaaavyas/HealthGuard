@@ -130,7 +130,10 @@ export class ProgressService {
     }
 
     // 4. Smoking Status Improved
-    if (baseline.smoking === "current" && (latest.smoking === "former" || latest.smoking === "never")) {
+    if (
+      baseline.smoking === "current" &&
+      (latest.smoking === "former" || latest.smoking === "never")
+    ) {
       milestones.push({
         id: `smoking_status_${latest.createdAt}`,
         title: `Quit Smoking Progress`,

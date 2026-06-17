@@ -43,7 +43,8 @@ export class GuardrailsService {
     },
     {
       phrase: "you should stop medication",
-      replacement: "any changes to your active prescriptions should be discussed with a medical professional",
+      replacement:
+        "any changes to your active prescriptions should be discussed with a medical professional",
     },
     {
       phrase: "stop taking your medication",
@@ -67,7 +68,7 @@ export class GuardrailsService {
       const regex = new RegExp(`\\b${med}\\b`, "gi");
       cleaned = cleaned.replace(
         regex,
-        "[medication reference redacted; please consult your physician for clinical prescriptions]"
+        "[medication reference redacted; please consult your physician for clinical prescriptions]",
       );
     });
 
@@ -90,8 +91,12 @@ export class GuardrailsService {
 
     // Check for explicit drug mentions or diagnosis statements
     const hasMetformin = lower.includes("metformin") || lower.includes("take metformin");
-    const hasDefiniteDiabetes = lower.includes("you definitely have diabetes") || lower.includes("you have diabetes");
-    const hasStopMed = lower.includes("stop medication") || lower.includes("stop taking your medication") || lower.includes("should stop medication");
+    const hasDefiniteDiabetes =
+      lower.includes("you definitely have diabetes") || lower.includes("you have diabetes");
+    const hasStopMed =
+      lower.includes("stop medication") ||
+      lower.includes("stop taking your medication") ||
+      lower.includes("should stop medication");
 
     if (hasMetformin || hasDefiniteDiabetes || hasStopMed) {
       return false; // requires regeneration or deep sanitization

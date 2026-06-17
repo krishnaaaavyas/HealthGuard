@@ -63,7 +63,10 @@ const ACTION_TEMPLATES: ActionTemplate[] = [
 // Safety / Relevance Filter
 // ─────────────────────────────────────────────────────────────────────────────
 
-function isActionApplicable(profile: UserProfile & { sleepHours?: number }, action: ActionTemplate): boolean {
+function isActionApplicable(
+  profile: UserProfile & { sleepHours?: number },
+  action: ActionTemplate,
+): boolean {
   if (action.id === "quit_smoking") {
     // Only suggest if the user currently smokes
     return profile.smoking === "current";
@@ -180,9 +183,7 @@ export function calculateActionImpacts(
 
     const absoluteReduction = Math.round(current.overall - projected.overall);
     const relativeReduction =
-      current.overall > 0
-        ? Math.round((absoluteReduction / current.overall) * 100)
-        : 0;
+      current.overall > 0 ? Math.round((absoluteReduction / current.overall) * 100) : 0;
 
     return {
       id: action.id,

@@ -1,5 +1,10 @@
 export interface BehaviorSignal {
-  type: "risk_stagnant_30_days" | "risk_improved" | "repeated_high_sugar_scans" | "simulates_but_no_progress" | "missed_progress_logging";
+  type:
+    | "risk_stagnant_30_days"
+    | "risk_improved"
+    | "repeated_high_sugar_scans"
+    | "simulates_but_no_progress"
+    | "missed_progress_logging";
   severity: "low" | "medium" | "positive";
   insight: string;
 }
@@ -11,7 +16,7 @@ export class BehaviorService {
   static analyzeBehavior({
     progressLogs,
     simulations,
-    foodScans
+    foodScans,
   }: {
     progressLogs: any[];
     simulations: any[];
@@ -24,19 +29,17 @@ export class BehaviorService {
 
     // Sort progress logs ascending by date
     const sortedLogs = [...progressLogs].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
 
-    const logsLast30Days = sortedLogs.filter(
-      (log) => new Date(log.createdAt) >= thirtyDaysAgo
-    );
+    const logsLast30Days = sortedLogs.filter((log) => new Date(log.createdAt) >= thirtyDaysAgo);
 
     // 1. Check missed progress logging
     if (sortedLogs.length === 0) {
       signals.push({
         type: "missed_progress_logging",
         severity: "low",
-        insight: "It has been a while since your last progress update."
+        insight: "It has been a while since your last progress update.",
       });
     } else {
       const latestLog = sortedLogs[sortedLogs.length - 1];
@@ -44,7 +47,7 @@ export class BehaviorService {
         signals.push({
           type: "missed_progress_logging",
           severity: "low",
-          insight: "It has been a while since your last progress update."
+          insight: "It has been a while since your last progress update.",
         });
       }
     }
@@ -59,13 +62,13 @@ export class BehaviorService {
         signals.push({
           type: "risk_improved",
           severity: "positive",
-          insight: `Your overall risk has improved by ${diff} points.`
+          insight: `Your overall risk has improved by ${diff} points.`,
         });
       } else if (Math.abs(diff) < 3) {
         signals.push({
           type: "risk_stagnant_30_days",
           severity: "medium",
-          insight: "Your risk score has not changed much in the last 30 days."
+          insight: "Your risk score has not changed much in the last 30 days.",
         });
       }
     }
@@ -77,7 +80,7 @@ export class BehaviorService {
       signals.push({
         type: "repeated_high_sugar_scans",
         severity: "medium",
-        insight: "Several recent scanned foods conflict with your risk goals."
+        insight: "Several recent scanned foods conflict with your risk goals.",
       });
     }
 
@@ -87,7 +90,7 @@ export class BehaviorService {
       signals.push({
         type: "simulates_but_no_progress",
         severity: "medium",
-        insight: "You explored improvement plans but haven't logged progress yet."
+        insight: "You explored improvement plans but haven't logged progress yet.",
       });
     }
 

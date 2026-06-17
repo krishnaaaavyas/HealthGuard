@@ -78,7 +78,8 @@ export class AIService {
     }
 
     const json: any = await resp.json();
-    const text = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") ?? "";
+    const text =
+      json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") ?? "";
     if (!text) {
       throw new Error("Empty response from Gemini");
     }
@@ -102,7 +103,11 @@ export class AIService {
   /**
    * Get cached recommendation from Firestore
    */
-  private static async getCached(userId: string, type: string, currentSnapshot: any): Promise<any | null> {
+  private static async getCached(
+    userId: string,
+    type: string,
+    currentSnapshot: any,
+  ): Promise<any | null> {
     try {
       const docRef = db.collection("aiRecommendations").doc(`${userId}_${type}`);
       const docSnap = await docRef.get();
@@ -123,7 +128,12 @@ export class AIService {
   /**
    * Save recommendation to Firestore cache
    */
-  private static async saveCache(userId: string, type: string, content: any, snapshot: any): Promise<void> {
+  private static async saveCache(
+    userId: string,
+    type: string,
+    content: any,
+    snapshot: any,
+  ): Promise<void> {
     try {
       const docRef = db.collection("aiRecommendations").doc(`${userId}_${type}`);
       await docRef.set({
@@ -145,7 +155,7 @@ export class AIService {
   static async generateFullAdvice(
     userId: string,
     profile: UserProfile & { language: string },
-    scores: { diabetes: number; heart: number; hypertension: number }
+    scores: { diabetes: number; heart: number; hypertension: number },
   ): Promise<any> {
     const snapshot = {
       age: profile.age,
@@ -203,6 +213,8 @@ Explain rationales for these risk scores based on demographic profile, family hi
 Create a customized regional diet plan (e.g., Indian foods if target language is Hindi/Gujarati).
 Create a customized exercise plan.
 Provide prevention tips.
+
+CRITICAL RULE: For each plan/advice section (dietPlan, exercisePlan, preventionTips), the output MUST be extremely brief. Limit each output to a maximum of: 3 bullet points, 1 actionable next step, and 1 short physiological reason. Do NOT write long essays or general nutrition/training phases. Replace verbose descriptions with concise cards/bullets.
 
 Do NOT override the computed risk percentages. Return exactly the score percentages provided in this response schema:
 {
@@ -290,7 +302,7 @@ Target Language: Respond ENTIRELY in ${targetLang}. Use clean markdown with head
     userId: string,
     riskScores: { diabetes: number; heart: number; hypertension: number },
     factors: Array<{ factor: string; impact: number }>,
-    language: string
+    language: string,
   ): Promise<string> {
     const snapshot = {
       diabetes: riskScores.diabetes,
@@ -305,7 +317,7 @@ Target Language: Respond ENTIRELY in ${targetLang}. Use clean markdown with head
 
     const key = this.getApiKey();
     if (!key) {
-      return `Your health assessment indicates risk scores: Diabetes: ${riskScores.diabetes}%, Heart: ${riskScores.heart}%, Hypertension: ${riskScores.hypertension}%. Key contributing factors: ${factors.map(f => `${f.factor} (impact: ${f.impact}%)`).join(", ")}. Consult your physician.`;
+      return `Your health assessment indicates risk scores: Diabetes: ${riskScores.diabetes}%, Heart: ${riskScores.heart}%, Hypertension: ${riskScores.hypertension}%. Key contributing factors: ${factors.map((f) => `${f.factor} (impact: ${f.impact}%)`).join(", ")}. Consult your physician.`;
     }
 
     const targetLang = langName[language] || "English";
@@ -318,6 +330,7 @@ Contributing risk factors:
 ${JSON.stringify(factors)}
 
 Avoid clinical diagnosis, prescription drugs, or fear-based language. Emphasize education and risk modification.
+CRITICAL RULE: Output should be extremely brief. Limit your response to a maximum of: 3 bullets, 1 next action, and 1 short reason. Do NOT write long essays.
 Respond entirely in ${targetLang}.`;
 
     try {
@@ -339,7 +352,7 @@ Respond entirely in ${targetLang}.`;
     currentRisk: number,
     projectedRisk: number,
     changes: string[],
-    language: string
+    language: string,
   ): Promise<string> {
     const snapshot = {
       currentRisk,
@@ -359,8 +372,9 @@ Respond entirely in ${targetLang}.`;
     const targetLang = langName[language] || "English";
     const prompt = `Explain why making the following lifestyle modifications: ${changes.join(", ")}
 reduced the user's estimated chronic overall health risk score from ${currentRisk}% to ${projectedRisk}% (Absolute drop of ${currentRisk - projectedRisk}%).
-Explain the physiological benefits (e.g. cardiac workload, arterial pressure, insulin sensitivity).
+Explain the physiological benefits (e.g. cardiac workload, arterial pressure, insulin sensitivity) briefly.
 Keep the language simple, encouraging, and educational. Do not promise specific clinical diagnostics.
+CRITICAL RULE: Output should be extremely brief. Limit your response to a maximum of: 3 bullets, 1 next action, and 1 short reason. Do NOT write long essays.
 Respond entirely in ${targetLang}.`;
 
     try {
@@ -383,7 +397,7 @@ Respond entirely in ${targetLang}.`;
     region: string,
     dietType: string,
     budget: string,
-    riskScores: { diabetes: number; heart: number; hypertension: number }
+    riskScores: { diabetes: number; heart: number; hypertension: number },
   ): Promise<string> {
     const snapshot = {
       age: profile.age,
@@ -404,7 +418,11 @@ Respond entirely in ${targetLang}.`;
 
     const key = this.getApiKey();
     if (!key) {
-      return RiskService.generateDeterministicPlans(profile, { diabetes: riskScores.diabetes, heart: riskScores.heart, hypertension: riskScores.hypertension }).dietPlan;
+      return RiskService.generateDeterministicPlans(profile, {
+        diabetes: riskScores.diabetes,
+        heart: riskScores.heart,
+        hypertension: riskScores.hypertension,
+      }).dietPlan;
     }
 
     const targetLang = langName[profile.language] || "English";
@@ -416,6 +434,7 @@ Respond entirely in ${targetLang}.`;
 - Budget constraint: ${budget}
 
 Provide structured breakfast, lunch, snack, and dinner meal suggestions. Incorporate ingredients matching the regional preference. Avoid prescribing medical treatments.
+CRITICAL RULE: Output should be extremely brief. Limit any advice to a maximum of: 3 bullets, 1 next action, and 1 short reason. Do NOT write long essays.
 Respond entirely in ${targetLang} in clear markdown.`;
 
     try {
@@ -436,7 +455,7 @@ Respond entirely in ${targetLang} in clear markdown.`;
     userId: string,
     profile: UserProfile & { language: string },
     fitnessLevel: string,
-    riskScores: { diabetes: number; heart: number; hypertension: number }
+    riskScores: { diabetes: number; heart: number; hypertension: number },
   ): Promise<string> {
     const snapshot = {
       age: profile.age,
@@ -455,7 +474,11 @@ Respond entirely in ${targetLang} in clear markdown.`;
 
     const key = this.getApiKey();
     if (!key) {
-      return RiskService.generateDeterministicPlans(profile, { diabetes: riskScores.diabetes, heart: riskScores.heart, hypertension: riskScores.hypertension }).exercisePlan;
+      return RiskService.generateDeterministicPlans(profile, {
+        diabetes: riskScores.diabetes,
+        heart: riskScores.heart,
+        hypertension: riskScores.hypertension,
+      }).exercisePlan;
     }
 
     const targetLang = langName[profile.language] || "English";
@@ -465,6 +488,7 @@ Respond entirely in ${targetLang} in clear markdown.`;
 - Risk profile: Diabetes: ${riskScores.diabetes}%, Heart: ${riskScores.heart}%, Hypertension: ${riskScores.hypertension}%
 
 Include schedule tables, walking parameters, mobility stretches, and strength training. Restrict difficulty if risk scores are high or user is beginner.
+CRITICAL RULE: Output should be extremely brief. Limit advice to a maximum of: 3 bullets, 1 next action, and 1 short reason. Do NOT write long essays.
 Respond entirely in ${targetLang} in clear markdown.`;
 
     try {
@@ -484,7 +508,7 @@ Respond entirely in ${targetLang} in clear markdown.`;
   static async generatePreventionTips(
     userId: string,
     profile: UserProfile & { language: string },
-    riskScores: { diabetes: number; heart: number; hypertension: number }
+    riskScores: { diabetes: number; heart: number; hypertension: number },
   ): Promise<string> {
     const snapshot = {
       age: profile.age,
@@ -504,7 +528,11 @@ Respond entirely in ${targetLang} in clear markdown.`;
 
     const key = this.getApiKey();
     if (!key) {
-      return RiskService.generateDeterministicPlans(profile, { diabetes: riskScores.diabetes, heart: riskScores.heart, hypertension: riskScores.hypertension }).preventionTips;
+      return RiskService.generateDeterministicPlans(profile, {
+        diabetes: riskScores.diabetes,
+        heart: riskScores.heart,
+        hypertension: riskScores.hypertension,
+      }).preventionTips;
     }
 
     const targetLang = langName[profile.language] || "English";
@@ -514,6 +542,7 @@ Respond entirely in ${targetLang} in clear markdown.`;
 - Risk Scores: Diabetes: ${riskScores.diabetes}%, Heart: ${riskScores.heart}%, Hypertension: ${riskScores.hypertension}%
 
 Format as bullet points with concrete actions (e.g. "Reduce sugar sweetened tea" instead of "Lose weight").
+CRITICAL RULE: Output should be extremely brief. Limit advice to a maximum of: 3 bullets, 1 next action, and 1 short reason. Do NOT write long essays.
 Respond entirely in ${targetLang} in clear markdown.`;
 
     try {
@@ -533,12 +562,14 @@ Respond entirely in ${targetLang} in clear markdown.`;
   static async generateProgressReview(
     userId: string,
     logs: any[],
-    language: string
+    language: string,
   ): Promise<{ review: string; coaching: string }> {
     if (logs.length < 2) {
       return {
-        review: "You have completed your first assessment! Keep logging your weight and physical habits over time to view personalized progress reviews.",
-        coaching: "Maintain your current plan, check back regularly, and record your weight to build a detailed progress tracking history."
+        review:
+          "You have completed your first assessment! Keep logging your weight and physical habits over time to view personalized progress reviews.",
+        coaching:
+          "Maintain your current plan, check back regularly, and record your weight to build a detailed progress tracking history.",
       };
     }
 
@@ -548,7 +579,7 @@ Respond entirely in ${targetLang} in clear markdown.`;
     // Find a log from roughly 30 days ago to make monthly comparisons
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const monthlyLog = logs.find(l => new Date(l.createdAt) >= thirtyDaysAgo) || first;
+    const monthlyLog = logs.find((l) => new Date(l.createdAt) >= thirtyDaysAgo) || first;
 
     const snapshot = {
       logsCount: logs.length,
@@ -566,19 +597,20 @@ Respond entirely in ${targetLang} in clear markdown.`;
     const weightDiff = first.weight - latest.weight;
     const overallRiskDiff = first.overallRisk - latest.overallRisk;
     const fallbackReview = `Over the last ${logs.length > 2 ? "tracking period" : "assessments"}, your overall health risk score changed from ${first.overallRisk}% to ${latest.overallRisk}% (an improvement of ${overallRiskDiff}%). Your weight changed from ${first.weight}kg to ${latest.weight}kg (a change of ${-weightDiff.toFixed(1)}kg).`;
-    const fallbackCoaching = overallRiskDiff >= 0
-      ? "Great job! Maintain your current habits, focusing on consistent daily exercise and balanced meal sizes to sustain this progress."
-      : "We suggest prioritizing your focus areas. Reduce high-calorie snacks, log meals, and gradually increase your physical exercise sessions.";
+    const fallbackCoaching =
+      overallRiskDiff >= 0
+        ? "Great job! Maintain your current habits, focusing on consistent daily exercise and balanced meal sizes to sustain this progress."
+        : "We suggest prioritizing your focus areas. Reduce high-calorie snacks, log meals, and gradually increase your physical exercise sessions.";
 
     if (!key) {
       return {
         review: fallbackReview,
-        coaching: fallbackCoaching
+        coaching: fallbackCoaching,
       };
     }
 
     // Prepare the list of logs for the prompt
-    const logDetails = logs.map(l => ({
+    const logDetails = logs.map((l) => ({
       date: new Date(l.createdAt).toLocaleDateString(),
       weight: l.weight,
       bmi: l.bmi,
@@ -587,7 +619,7 @@ Respond entirely in ${targetLang} in clear markdown.`;
       hypertensionRisk: l.hypertensionRisk,
       overallRisk: l.overallRisk,
       exercise: l.exercise,
-      smoking: l.smoking
+      smoking: l.smoking,
     }));
 
     const prompt = `You are a clinical wellness progress analyst. Analyze the user's health metrics history:
@@ -599,15 +631,17 @@ Demographics comparison:
 - 30-Day Ago Reference (if available): Weight: ${monthlyLog.weight}kg, Overall Risk Score: ${monthlyLog.overallRisk}%
 
 Write a personalized Progress Review narrative and an Adapted Coaching Advice statement based on this history:
-1. Progress Review: Summarize the changes (weight, BMI, risk scores). Pinpoint the biggest lifestyle contributor (e.g. upgraded exercise, weight loss, quitting smoking). Mention monthly vs baseline improvements.
-2. Adapted Coaching Advice: Suggest actionable modifications. If their risk scores improved, encourage maintaining their habits ("Maintain Habits"). If their risk scores worsened, guide them on key focus areas ("Focus Areas").
+1. Progress Review: Summarize the changes (weight, BMI, risk scores) briefly. Pinpoint the biggest lifestyle contributor.
+2. Adapted Coaching Advice: Suggest actionable modifications.
 
 Avoid prescribing medical diagnostics or specific pharmaceutical drugs. Keep it encouraging, professional, and patient-first.
 
+CRITICAL RULE: Each output string ("review" and "coaching") MUST be extremely brief: a maximum of 3 bullet points, 1 next action, and 1 short reason.
+
 Respond strictly in JSON using this schema:
 {
-  "review": "A detailed 2-3 sentence summary of progress written directly to the user in target language.",
-  "coaching": "2-3 sentences of adapted lifestyle action plans in target language."
+  "review": "A brief summary of progress written directly to the user in target language (max 3 bullets, 1 next action, 1 short reason).",
+  "coaching": "A brief Adapted lifestyle action plan in target language (max 3 bullets, 1 next action, 1 short reason)."
 }
 
 Target Language: Respond ENTIRELY in ${targetLang}.`;
@@ -616,9 +650,9 @@ Target Language: Respond ENTIRELY in ${targetLang}.`;
       type: "object",
       properties: {
         review: { type: "string" },
-        coaching: { type: "string" }
+        coaching: { type: "string" },
       },
-      required: ["review", "coaching"]
+      required: ["review", "coaching"],
     };
 
     try {
@@ -634,7 +668,7 @@ Target Language: Respond ENTIRELY in ${targetLang}.`;
       console.error("Failed to generate AI progress review, using fallback:", err);
       return {
         review: fallbackReview,
-        coaching: fallbackCoaching
+        coaching: fallbackCoaching,
       };
     }
   }
@@ -647,7 +681,7 @@ Target Language: Respond ENTIRELY in ${targetLang}.`;
     currentRisk: number,
     forecast: { days30: number; days90: number; days180: number },
     actions: string[],
-    language: string
+    language: string,
   ): Promise<string> {
     const snapshot = {
       currentRisk,
@@ -675,7 +709,8 @@ Forecasted Risk:
 Selected Improvement Actions:
 ${actions.map((a) => `- ${a}`).join("\n")}
 
-Explain the physiological mechanism of these improvements (e.g. why consistent habit adjustments result in risk drops over time, why it takes time for cardiovascular and glycemic markers to stabilize). Keep it simple, encouraging, and motivational. Do NOT make definite diagnostics or prescribe medications.
+Explain the physiological mechanism of these improvements briefly. Keep it simple and motivational. Do NOT make definite diagnostics or prescribe medications.
+CRITICAL RULE: Output should be extremely brief. Limit explanation to a maximum of: 3 bullets, 1 next action, and 1 short reason. Do NOT write long essays.
 Respond entirely in ${targetLang}.`;
 
     try {
@@ -698,7 +733,7 @@ Respond entirely in ${targetLang}.`;
     riskDrivers: any[],
     actionImpacts: any[],
     signal: { type: string; insight: string },
-    language: string
+    language: string,
   ): Promise<{ message: string; nextAction: string; encouragement: string }> {
     const snapshot = {
       profileAge: profile.age,
@@ -715,28 +750,34 @@ Respond entirely in ${targetLang}.`;
     const key = this.getApiKey();
     if (!key) {
       // Deterministic fallback response based on signal type
-      let message = "Keep tracking your daily parameters to protect your vascular and metabolic health.";
+      let message =
+        "Keep tracking your daily parameters to protect your vascular and metabolic health.";
       let nextAction = "Log your weight or log a physical activity today.";
       let encouragement = "Every small step counts towards a healthier you!";
 
       if (signal.type === "risk_stagnant_30_days") {
-        message = "Your overall risk score hasn't moved much this month. Let's identify minor tweaks in your diet or activity that could unlock more progress.";
+        message =
+          "Your overall risk score hasn't moved much this month. Let's identify minor tweaks in your diet or activity that could unlock more progress.";
         nextAction = "Schedule a 15-minute brisk walk after dinner.";
         encouragement = "Plateaus are normal; consistency will eventually trigger positive change!";
       } else if (signal.type === "risk_improved") {
-        message = "Fantastic job! Your risk score has dropped, which shows your dedication to physical activity and dietary control is paying off.";
+        message =
+          "Fantastic job! Your risk score has dropped, which shows your dedication to physical activity and dietary control is paying off.";
         nextAction = "Continue your current workout streak and log your parameters.";
         encouragement = "You're building life-changing habits, keep the momentum going!";
       } else if (signal.type === "repeated_high_sugar_scans") {
-        message = "Your recent food scans include several products containing elevated sugars, sodium, or saturated fats which conflict with your goals.";
+        message =
+          "Your recent food scans include several products containing elevated sugars, sodium, or saturated fats which conflict with your goals.";
         nextAction = "Replace sweet beverages with fresh coconut water or buttermilk.";
         encouragement = "Making mindful swaps is the easiest way to lower cardiovascular stress!";
       } else if (signal.type === "simulates_but_no_progress") {
-        message = "You've successfully explored several What-If improvement plans, proving you are motivated to change. Now let's turn those goals into active habits.";
+        message =
+          "You've successfully explored several What-If improvement plans, proving you are motivated to change. Now let's turn those goals into active habits.";
         nextAction = "Log your weight and take a 10-minute walk today to start.";
         encouragement = "Action cures hesitation. Start today, no matter how small!";
       } else if (signal.type === "missed_progress_logging") {
-        message = "It has been over two weeks since your last health check-in. Consistent tracking is key to knowing where your health is heading.";
+        message =
+          "It has been over two weeks since your last health check-in. Consistent tracking is key to knowing where your health is heading.";
         nextAction = "Take 30 seconds to log your weight and symptoms.";
         encouragement = "We're here to guide you, let's get back on track!";
       }
@@ -752,11 +793,13 @@ Recommended Actions: ${JSON.stringify(actionImpacts)}
 Behavioral Signal Detected: "${signal.insight}" (Signal Type: ${signal.type})
 
 Generate exactly three fields:
-1. "message": One short coaching message (1-2 sentences) directly addressing the behavioral signal and explaining why it matters for their specific risk profile (e.g. if they have high sugar scans, explain how that affects their diabetes risk).
-2. "nextAction": A very specific, micro-actionable next step (e.g., "Log your weight today" or "Choose plain yogurt instead of Maggi next time").
+1. "message": One short coaching message (1-2 sentences) directly addressing the behavioral signal and explaining why it matters for their specific risk profile.
+2. "nextAction": A very specific, micro-actionable next step.
 3. "encouragement": A warm, encouraging sign-off line (1 sentence).
 
 Avoid prescription drugs, definitive medical diagnostics, or long essays. Keep the entire tone concise and direct.
+CRITICAL RULE: The message must be extremely brief. Explain why it matters as 1 short reason and output max 3 bullet points if needed. Next action must be a single step.
+
 Respond strictly in JSON matching the schema:
 {
   "message": "...",
@@ -770,9 +813,9 @@ Respond ENTIRELY in ${targetLang}.`;
       properties: {
         message: { type: "string" },
         nextAction: { type: "string" },
-        encouragement: { type: "string" }
+        encouragement: { type: "string" },
       },
-      required: ["message", "nextAction", "encouragement"]
+      required: ["message", "nextAction", "encouragement"],
     };
 
     try {
@@ -790,9 +833,8 @@ Respond ENTIRELY in ${targetLang}.`;
       return {
         message: `Your behavior signals: ${signal.insight}`,
         nextAction: "Perform one recommended health improvement action today.",
-        encouragement: "Stay consistent on your wellness journey!"
+        encouragement: "Stay consistent on your wellness journey!",
       };
     }
   }
 }
-

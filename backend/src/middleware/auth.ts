@@ -9,11 +9,7 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export async function requireAuth(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) {
+export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Unauthorized: Missing Authorization Header" });
@@ -29,7 +25,7 @@ export async function requireAuth(
     req.user = {
       uid: token.replace("mock-uid-", ""),
       email: `${token}@healthguard-ai.mock`,
-      name: "Mock Patient"
+      name: "Mock Patient",
     };
     return next();
   }
@@ -44,7 +40,7 @@ export async function requireAuth(
           req.user = {
             uid: payload.user_id || payload.sub,
             email: payload.email,
-            name: payload.name
+            name: payload.name,
           };
           return next();
         }
@@ -54,11 +50,13 @@ export async function requireAuth(
       req.user = {
         uid: "fallback-mock-user-id",
         email: "fallback-guest@healthguard-ai.mock",
-        name: "Fallback Patient"
+        name: "Fallback Patient",
       };
       return next();
     }
-    return res.status(500).json({ error: "Security Configuration Error: Firebase Admin SDK is unconfigured" });
+    return res
+      .status(500)
+      .json({ error: "Security Configuration Error: Firebase Admin SDK is unconfigured" });
   }
 
   try {
@@ -66,7 +64,7 @@ export async function requireAuth(
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
-      name: decodedToken.name
+      name: decodedToken.name,
     };
     next();
   } catch (err: any) {

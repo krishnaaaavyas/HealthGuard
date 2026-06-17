@@ -35,7 +35,9 @@ const ResultSchema = GeminiResultSchema.extend({
   overallScore: z.number().min(0).max(100),
   overallRisk: z.enum(["Low", "Moderate", "High"]),
   factors: z.array(z.object({ name: z.string(), impact: z.number() })).optional(),
-  actionPriorities: z.array(z.object({ action: z.string(), estimatedImpact: z.number() })).optional(),
+  actionPriorities: z
+    .array(z.object({ action: z.string(), estimatedImpact: z.number() }))
+    .optional(),
 });
 
 export type HealthResult = z.infer<typeof ResultSchema>;
@@ -301,7 +303,7 @@ export async function assessHealth({ data }: { data: z.infer<typeof InputSchema>
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${idToken}`,
+      Authorization: `Bearer ${idToken}`,
     },
     body: JSON.stringify(validatedData),
   });
@@ -333,7 +335,7 @@ export async function assessHealth({ data }: { data: z.infer<typeof InputSchema>
     overallRisk: analysis.overallRiskLabel,
     factors: analysis.factors,
     actionPriorities: analysis.actionPriorities,
-    bmi: analysis.bmi
+    bmi: analysis.bmi,
   };
 }
 
@@ -354,10 +356,12 @@ export const IngredientReportSchema = z.object({
   foodScore: z.number().optional(),
   personalizedScore: z.number().optional(),
   riskLevel: z.enum(["Low", "Moderate", "High"]).optional(),
-  conflict: z.object({
-    conflicts: z.boolean(),
-    message: z.string(),
-  }).optional(),
+  conflict: z
+    .object({
+      conflicts: z.boolean(),
+      message: z.string(),
+    })
+    .optional(),
   recommendations: z.array(z.string()).optional(),
   diabetesImpactPoints: z.number().optional(),
   hypertensionImpactPoints: z.number().optional(),
@@ -413,7 +417,7 @@ export async function assessIngredientsImage({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${idToken}`,
+      Authorization: `Bearer ${idToken}`,
     },
     body: JSON.stringify({ contents }),
   });
@@ -452,7 +456,7 @@ export async function assessIngredientsText({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${idToken}`,
+      Authorization: `Bearer ${idToken}`,
     },
     body: JSON.stringify({ contents }),
   });

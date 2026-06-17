@@ -28,7 +28,7 @@ HealthGuard AI is a modern, patient-first web application designed to help indiv
 
 - **Gemini Multimodal OCR**: Captures food packaging photos (via drag-and-drop or **live webcam capture**) and uses Gemini's vision capability to isolate and parse standard ingredients.
 - **Health Score (1–10)**: Analyzes healthy vs. concerning chemical additives, presenting detailed glycemic (Diabetes), vascular (Hypertension), and cardiac impacts.
-- Includes popular preset profiles for local context (e.g., *Maggi Noodles, Coca-Cola, Lay's Chips, Amul Dahi, Roasted Chana*).
+- Includes popular preset profiles for local context (e.g., _Maggi Noodles, Coca-Cola, Lay's Chips, Amul Dahi, Roasted Chana_).
 - Offline fallback keyword evaluator checks ingredients locally if connection or API is unavailable.
 
 ### 📄 5. Clinician-Friendly Reports
@@ -147,6 +147,7 @@ healthguard-ai/
 The Express backend service resides in the `/backend` folder.
 
 1. Navigate to the backend directory and install backend dependencies:
+
    ```bash
    cd backend
    npm install
@@ -165,18 +166,18 @@ The backend server runs on `http://localhost:5000`. By default, it operates in a
 
 We are executing the productionization of HealthGuard AI in structured phases. Here is the current progress:
 
-| Phase       | Description                                                     | Status           |
-| ----------- | --------------------------------------------------------------- | ---------------- |
-| **Phase 1** | Vite, React 19, TanStack routing, and Tailwind v4 core setup    | **Completed** ✅ |
-| **Phase 2** | Multimodal Scanner (Vision OCR API) & Native Webcam Integration | **Completed** ✅ |
-| **Phase 3** | Clinical Calibration (FINDRISC & Framingham equations)          | **Completed** ✅ |
-| **Phase 4** | Safety Guardrails (AI claims and prescription validation)       | **Completed** ✅ |
-| **Phase 5** | Code Quality & Linter Optimization                              | **Completed** ✅ |
-| **Phase 6** | Backend Foundation & Firestore Migration                        | **Completed** ✅ |
-| **Phase 7** | Clinical Risk Engine & Explainability System                     | **Completed** ✅ |
-| **Phase 8** | What-If Simulator (Health Decision Engine)                      | **Completed** ✅ |
-| **Phase 9** | AI Health Coach (Personalized Intelligence Layer)               | **Completed** ✅ |
-| **Phase 10**| Progress Intelligence & Longitudinal Health Tracking             | **Completed** ✅ |
+| Phase        | Description                                                     | Status           |
+| ------------ | --------------------------------------------------------------- | ---------------- |
+| **Phase 1**  | Vite, React 19, TanStack routing, and Tailwind v4 core setup    | **Completed** ✅ |
+| **Phase 2**  | Multimodal Scanner (Vision OCR API) & Native Webcam Integration | **Completed** ✅ |
+| **Phase 3**  | Clinical Calibration (FINDRISC & Framingham equations)          | **Completed** ✅ |
+| **Phase 4**  | Safety Guardrails (AI claims and prescription validation)       | **Completed** ✅ |
+| **Phase 5**  | Code Quality & Linter Optimization                              | **Completed** ✅ |
+| **Phase 6**  | Backend Foundation & Firestore Migration                        | **Completed** ✅ |
+| **Phase 7**  | Clinical Risk Engine & Explainability System                    | **Completed** ✅ |
+| **Phase 8**  | What-If Simulator (Health Decision Engine)                      | **Completed** ✅ |
+| **Phase 9**  | AI Health Coach (Personalized Intelligence Layer)               | **Completed** ✅ |
+| **Phase 10** | Progress Intelligence & Longitudinal Health Tracking            | **Completed** ✅ |
 
 ---
 

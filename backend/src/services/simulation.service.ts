@@ -35,12 +35,27 @@ export class SimulationService {
   /**
    * Run a temporary What-If simulation by applying modifications to a profile clone
    */
-  static runSimulation(originalProfile: UserProfile, modifications: SimulationModifications): SimulationResult {
+  static runSimulation(
+    originalProfile: UserProfile,
+    modifications: SimulationModifications,
+  ): SimulationResult {
     // 1. Calculate baseline risks using current profile
-    const baselineBmiAnalysis = RiskService.calculateBMI(originalProfile.heightCm, originalProfile.weightKg);
-    const baselineDiabetes = RiskService.calculateDiabetesRisk(originalProfile, baselineBmiAnalysis.bmi).risk;
-    const baselineHeart = RiskService.calculateHeartRisk(originalProfile, baselineBmiAnalysis.bmi).risk;
-    const baselineHypertension = RiskService.calculateHypertensionRisk(originalProfile, baselineBmiAnalysis.bmi).risk;
+    const baselineBmiAnalysis = RiskService.calculateBMI(
+      originalProfile.heightCm,
+      originalProfile.weightKg,
+    );
+    const baselineDiabetes = RiskService.calculateDiabetesRisk(
+      originalProfile,
+      baselineBmiAnalysis.bmi,
+    ).risk;
+    const baselineHeart = RiskService.calculateHeartRisk(
+      originalProfile,
+      baselineBmiAnalysis.bmi,
+    ).risk;
+    const baselineHypertension = RiskService.calculateHypertensionRisk(
+      originalProfile,
+      baselineBmiAnalysis.bmi,
+    ).risk;
     const currentRisk = Math.round((baselineDiabetes + baselineHeart + baselineHypertension) / 3);
 
     // 2. Clone profile and apply modifications
@@ -62,13 +77,25 @@ export class SimulationService {
     }
 
     // 3. Run Risk calculations on fully modified profile
-    const simulatedBmiAnalysis = RiskService.calculateBMI(simulatedProfile.heightCm, simulatedProfile.weightKg);
-    let projectedDiabetes = RiskService.calculateDiabetesRisk(simulatedProfile, simulatedBmiAnalysis.bmi).risk;
-    let projectedHeart = RiskService.calculateHeartRisk(simulatedProfile, simulatedBmiAnalysis.bmi).risk;
-    let projectedHypertension = RiskService.calculateHypertensionRisk(simulatedProfile, simulatedBmiAnalysis.bmi).risk;
+    const simulatedBmiAnalysis = RiskService.calculateBMI(
+      simulatedProfile.heightCm,
+      simulatedProfile.weightKg,
+    );
+    let projectedDiabetes = RiskService.calculateDiabetesRisk(
+      simulatedProfile,
+      simulatedBmiAnalysis.bmi,
+    ).risk;
+    let projectedHeart = RiskService.calculateHeartRisk(
+      simulatedProfile,
+      simulatedBmiAnalysis.bmi,
+    ).risk;
+    let projectedHypertension = RiskService.calculateHypertensionRisk(
+      simulatedProfile,
+      simulatedBmiAnalysis.bmi,
+    ).risk;
 
     // 4. Incorporate Sleep Hours simulation (if provided)
-    // Baseline sleep is assumed to be 8 hours. 
+    // Baseline sleep is assumed to be 8 hours.
     // Sleep < 6 results in autonomic strain: +5% to diabetes, +7% to hypertension, +5% to heart
     if (modifications.sleepHours !== undefined) {
       if (modifications.sleepHours < 6) {
@@ -78,7 +105,9 @@ export class SimulationService {
       }
     }
 
-    const projectedRisk = Math.round((projectedDiabetes + projectedHeart + projectedHypertension) / 3);
+    const projectedRisk = Math.round(
+      (projectedDiabetes + projectedHeart + projectedHypertension) / 3,
+    );
 
     // 5. Calculate absolute and relative drops
     const absoluteDelta = currentRisk - projectedRisk;
@@ -121,21 +150,30 @@ export class SimulationService {
     };
 
     // Weight Impact
-    if (modifications.weightKg !== undefined && modifications.weightKg !== originalProfile.weightKg) {
+    if (
+      modifications.weightKg !== undefined &&
+      modifications.weightKg !== originalProfile.weightKg
+    ) {
       const drop = runSingleMod({ weightKg: modifications.weightKg }) - currentRisk;
       if (drop !== 0) {
-        const factor = modifications.weightKg < originalProfile.weightKg ? "Weight Reduction" : "Weight Gain";
+        const factor =
+          modifications.weightKg < originalProfile.weightKg ? "Weight Reduction" : "Weight Gain";
         impactAnalysis.push({ factor, contribution: drop });
       }
     }
 
     // Exercise Impact
-    if (modifications.exercise !== undefined && modifications.exercise !== originalProfile.exercise) {
+    if (
+      modifications.exercise !== undefined &&
+      modifications.exercise !== originalProfile.exercise
+    ) {
       const drop = runSingleMod({ exercise: modifications.exercise }) - currentRisk;
       if (drop !== 0) {
-        const factor = (originalProfile.exercise === "none" || originalProfile.exercise === "light") && (modifications.exercise === "moderate" || modifications.exercise === "active")
-          ? "Exercise Increase"
-          : "Exercise Reduction";
+        const factor =
+          (originalProfile.exercise === "none" || originalProfile.exercise === "light") &&
+          (modifications.exercise === "moderate" || modifications.exercise === "active")
+            ? "Exercise Increase"
+            : "Exercise Reduction";
         impactAnalysis.push({ factor, contribution: drop });
       }
     }
@@ -144,9 +182,10 @@ export class SimulationService {
     if (modifications.smoking !== undefined && modifications.smoking !== originalProfile.smoking) {
       const drop = runSingleMod({ smoking: modifications.smoking }) - currentRisk;
       if (drop !== 0) {
-        const factor = originalProfile.smoking === "current" && modifications.smoking === "never"
-          ? "Smoking Cessation"
-          : "Smoking Status Change";
+        const factor =
+          originalProfile.smoking === "current" && modifications.smoking === "never"
+            ? "Smoking Cessation"
+            : "Smoking Status Change";
         impactAnalysis.push({ factor, contribution: drop });
       }
     }
@@ -164,7 +203,8 @@ export class SimulationService {
     if (modifications.sleepHours !== undefined) {
       const drop = runSingleMod({ sleepHours: modifications.sleepHours }) - currentRisk;
       if (drop !== 0) {
-        const factor = modifications.sleepHours < 6 ? "Insufficient Sleep Penalty" : "Optimized Sleep Duration";
+        const factor =
+          modifications.sleepHours < 6 ? "Insufficient Sleep Penalty" : "Optimized Sleep Duration";
         impactAnalysis.push({ factor, contribution: drop });
       }
     }

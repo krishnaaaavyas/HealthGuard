@@ -61,10 +61,14 @@ export class FoodImpactService {
    */
   static calculatePersonalizedScores(
     foodImpact: { diabetesImpact: number; hypertensionImpact: number; heartImpact: number },
-    risks: { diabetes: number; heart: number; hypertension: number }
+    risks: { diabetes: number; heart: number; hypertension: number },
   ): { foodScore: number; personalizedScore: number; riskLevel: "Low" | "Moderate" | "High" } {
-    const maxImpact = Math.max(foodImpact.diabetesImpact, foodImpact.hypertensionImpact, foodImpact.heartImpact);
-    
+    const maxImpact = Math.max(
+      foodImpact.diabetesImpact,
+      foodImpact.hypertensionImpact,
+      foodImpact.heartImpact,
+    );
+
     // Base food score deduction
     let foodScore = 10 - Math.min(9, maxImpact / 3);
     foodScore = Math.max(1, Math.min(10, Math.round(foodScore)));
@@ -76,9 +80,12 @@ export class FoodImpactService {
 
     const diabetesDeduction = (foodImpact.diabetesImpact / 10) * diabetesRiskFactor * 3.5;
     const heartDeduction = (foodImpact.heartImpact / 10) * heartRiskFactor * 3.5;
-    const hypertensionDeduction = (foodImpact.hypertensionImpact / 10) * hypertensionRiskFactor * 3.5;
+    const hypertensionDeduction =
+      (foodImpact.hypertensionImpact / 10) * hypertensionRiskFactor * 3.5;
 
-    let personalizedScore = Math.round(foodScore - (diabetesDeduction + heartDeduction + hypertensionDeduction));
+    let personalizedScore = Math.round(
+      foodScore - (diabetesDeduction + heartDeduction + hypertensionDeduction),
+    );
     personalizedScore = Math.max(1, Math.min(foodScore, personalizedScore));
 
     const riskLevel: "Low" | "Moderate" | "High" =
@@ -96,7 +103,7 @@ export class FoodImpactService {
    */
   static suggestAlternatives(
     productName: string,
-    foodImpact: { diabetesImpact: number; hypertensionImpact: number; heartImpact: number }
+    foodImpact: { diabetesImpact: number; hypertensionImpact: number; heartImpact: number },
   ): string[] {
     const nameLower = productName.toLowerCase();
 
@@ -104,21 +111,38 @@ export class FoodImpactService {
     if (nameLower.includes("maggi") || nameLower.includes("noodle")) {
       return ["Vegetable Poha", "Roasted Chana", "Oats Upma"];
     }
-    if (nameLower.includes("coke") || nameLower.includes("cola") || nameLower.includes("soda") || nameLower.includes("pepsi")) {
+    if (
+      nameLower.includes("coke") ||
+      nameLower.includes("cola") ||
+      nameLower.includes("soda") ||
+      nameLower.includes("pepsi")
+    ) {
       return ["Lemon Water (Nimbu Pani)", "Coconut Water", "Buttermilk (Chaas)"];
     }
-    if (nameLower.includes("chip") || nameLower.includes("kurkure") || nameLower.includes("potato")) {
+    if (
+      nameLower.includes("chip") ||
+      nameLower.includes("kurkure") ||
+      nameLower.includes("potato")
+    ) {
       return ["Roasted Makhana", "Baked Beetroot Chips", "Unsalted Almonds"];
     }
     if (nameLower.includes("yogurt") || nameLower.includes("dahi")) {
       return ["Plain Homemade Yogurt", "Buttermilk (Chaas)"];
     }
-    if (nameLower.includes("chana") || nameLower.includes("chickpea") || nameLower.includes("roasted")) {
+    if (
+      nameLower.includes("chana") ||
+      nameLower.includes("chickpea") ||
+      nameLower.includes("roasted")
+    ) {
       return ["Sprouted Moong Salad", "Steamed Dhokla"];
     }
 
     // Category matches based on highest concern
-    const maxVal = Math.max(foodImpact.diabetesImpact, foodImpact.hypertensionImpact, foodImpact.heartImpact);
+    const maxVal = Math.max(
+      foodImpact.diabetesImpact,
+      foodImpact.hypertensionImpact,
+      foodImpact.heartImpact,
+    );
     if (maxVal > 0) {
       if (maxVal === foodImpact.diabetesImpact) {
         return ["Roasted Chana", "Sprouted Moong Salad", "Almonds"];
@@ -139,27 +163,35 @@ export class FoodImpactService {
    */
   static checkConflicts(
     ingredients: string[],
-    actionPriorities: Array<{ action: string; estimatedImpact: number }>
+    actionPriorities: Array<{ action: string; estimatedImpact: number }>,
   ): { conflicts: boolean; message: string } {
     const cleaned = this.cleanIngredients(ingredients);
     const hasPriority = (keywords: string[]) => {
-      return actionPriorities.some((p) =>
-        keywords.some((k) => p.action.toLowerCase().includes(k))
-      );
+      return actionPriorities.some((p) => keywords.some((k) => p.action.toLowerCase().includes(k)));
     };
 
     const hasIngredient = (keywords: string[]) => {
-      return cleaned.some((ing) =>
-        keywords.some((k) => ing.includes(k) || k.includes(ing))
-      );
+      return cleaned.some((ing) => keywords.some((k) => ing.includes(k) || k.includes(ing)));
     };
 
     // 1. Weight loss conflict
     if (hasPriority(["lose", "weight", "bmi", "kilos", "kg"])) {
-      if (hasIngredient(["sugar", "syrup", "maida", "refined_flour", "trans_fat", "palm_oil", "ghee", "butter"])) {
+      if (
+        hasIngredient([
+          "sugar",
+          "syrup",
+          "maida",
+          "refined_flour",
+          "trans_fat",
+          "palm_oil",
+          "ghee",
+          "butter",
+        ])
+      ) {
         return {
           conflicts: true,
-          message: "This food conflicts with your highest-impact health goal to lose weight and achieve a healthy BMI.",
+          message:
+            "This food conflicts with your highest-impact health goal to lose weight and achieve a healthy BMI.",
         };
       }
     }
@@ -179,7 +211,8 @@ export class FoodImpactService {
       if (hasIngredient(["salt", "sodium", "msg", "monosodium"])) {
         return {
           conflicts: true,
-          message: "This food conflicts with your health goal to manage blood pressure by restricting sodium.",
+          message:
+            "This food conflicts with your health goal to manage blood pressure by restricting sodium.",
         };
       }
     }
@@ -197,7 +230,7 @@ export class FoodImpactService {
     productName: string,
     ingredients: string[],
     risks: { diabetes: number; heart: number; hypertension: number },
-    actionPriorities: Array<{ action: string; estimatedImpact: number }>
+    actionPriorities: Array<{ action: string; estimatedImpact: number }>,
   ): FoodImpactResult {
     const foodImpact = this.calculateFoodImpact(ingredients);
     const scores = this.calculatePersonalizedScores(foodImpact, risks);

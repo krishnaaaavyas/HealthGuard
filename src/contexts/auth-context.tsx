@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const idToken = await firebaseUser.getIdToken();
           const response = await fetch(`${API_URL}/api/profile`, {
             headers: {
-              "Authorization": `Bearer ${idToken}`,
+              Authorization: `Bearer ${idToken}`,
             },
           });
 
@@ -142,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  "Authorization": `Bearer ${idToken}`,
+                  Authorization: `Bearer ${idToken}`,
                 },
                 body: JSON.stringify(body),
               });
@@ -179,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       try {
         const idToken = await user.getIdToken();
-        
+
         // We only write to backend if we have a profile to sync
         if (profile) {
           const body = {
@@ -192,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${idToken}`,
+              Authorization: `Bearer ${idToken}`,
             },
             body: JSON.stringify(body),
           });
@@ -264,7 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${idToken}`,
+                Authorization: `Bearer ${idToken}`,
               },
               body: JSON.stringify(body),
             });

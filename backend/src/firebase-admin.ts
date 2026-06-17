@@ -23,13 +23,13 @@ try {
       const raw = fs.readFileSync(serviceAccountPath, "utf8");
       const serviceAccount = JSON.parse(raw);
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: admin.credential.cert(serviceAccount),
       });
       console.log("Firebase Admin initialized via service-account.json");
     } else if (hasServiceAccountEnv) {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!);
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: admin.credential.cert(serviceAccount),
       });
       console.log("Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT env var");
     } else {
@@ -39,11 +39,16 @@ try {
     db = admin.firestore();
     isConfigured = true;
   } else {
-    console.warn("No Firebase credentials or emulator found. Falling back to local mock storage mode.");
+    console.warn(
+      "No Firebase credentials or emulator found. Falling back to local mock storage mode.",
+    );
     isConfigured = false;
   }
 } catch (err) {
-  console.warn("Firebase Admin failed to initialize. Falling back to local mock storage mode.", err);
+  console.warn(
+    "Firebase Admin failed to initialize. Falling back to local mock storage mode.",
+    err,
+  );
   isConfigured = false;
 }
 
@@ -82,7 +87,7 @@ class MockFirestore {
       filters: Array<{ field: string; op: string; value: any }>,
       orderField?: string,
       orderDir?: string,
-      limitCount?: number
+      limitCount?: number,
     ) => {
       const executeQuery = async () => {
         const prefix = `${collName}/`;
@@ -136,8 +141,7 @@ class MockFirestore {
           buildQuery([...filters, { field, op, value }], orderField, orderDir, limitCount),
         orderBy: (field: string, dir?: string) =>
           buildQuery(filters, field, dir || "asc", limitCount),
-        limit: (n: number) =>
-          buildQuery(filters, orderField, orderDir, n),
+        limit: (n: number) => buildQuery(filters, orderField, orderDir, n),
         get: executeQuery,
       };
     };
@@ -145,12 +149,9 @@ class MockFirestore {
     return {
       doc: (id?: string) =>
         buildDocRef(id ?? `mock-${Date.now()}-${Math.random().toString(36).slice(2)}`),
-      where: (field: string, op: string, value: any) =>
-        buildQuery([{ field, op, value }]),
-      orderBy: (field: string, dir?: string) =>
-        buildQuery([], field, dir || "asc"),
-      limit: (n: number) =>
-        buildQuery([], undefined, undefined, n),
+      where: (field: string, op: string, value: any) => buildQuery([{ field, op, value }]),
+      orderBy: (field: string, dir?: string) => buildQuery([], field, dir || "asc"),
+      limit: (n: number) => buildQuery([], undefined, undefined, n),
       get: () => buildQuery([]).get(),
       add: async (data: any) => {
         const id = `mock-${Date.now()}-${Math.random().toString(36).slice(2)}`;
