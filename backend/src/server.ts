@@ -281,9 +281,9 @@ app.post("/api/profile", requireAuth, async (req: AuthenticatedRequest, res) => 
     await userRef.set(
       {
         uid,
-        email: req.user?.email || null,
-        name: req.user?.name || null,
-        displayName: req.user?.name || null,
+        email: req.user?.email || existingUser?.email || null,
+        name: req.user?.name || existingUser?.name || existingUser?.displayName || null,
+        displayName: req.user?.name || existingUser?.displayName || existingUser?.name || null,
         hasCompletedAssessment: true,
         assessmentCompletedAt,
         lastAssessmentUpdate: now,

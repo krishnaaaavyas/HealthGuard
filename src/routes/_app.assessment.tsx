@@ -105,36 +105,66 @@ function AssessmentPage() {
 
       // Write onboarding status flag to firestore users collection
       if (isConfigured && auth.currentUser) {
-        const userRef = doc(db, "users", auth.currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        const exists = userSnap.exists();
-        const userData = exists ? userSnap.data() : null;
+        const uid = auth.currentUser.uid;
+        console.log(`[Firestore Debug] [Assessment Submit] Starting db write for users/${uid}`);
+        try {
+          const userRef = doc(db, "users", uid);
+          console.log(`[Firestore Debug] [Assessment Submit] Fetching user doc: users/${uid}`);
+          const fetchStartTime = Date.now();
+          const userSnap = await getDoc(userRef);
+          const exists = userSnap.exists();
+          const userData = exists ? userSnap.data() : null;
+          console.log(`[Firestore Debug] [Assessment Submit] Fetch completed in ${Date.now() - fetchStartTime}ms. Exists: ${exists}`);
 
-        const updateData: Record<string, unknown> = {
-          uid: auth.currentUser.uid,
-          email: auth.currentUser.email,
-          displayName: auth.currentUser.displayName || null,
-          hasCompletedAssessment: true,
-          lastAssessmentUpdatedAt: serverTimestamp(),
-        };
+          const updateData: Record<string, unknown> = {
+            uid: uid,
+            email: auth.currentUser.email,
+            displayName: auth.currentUser.displayName || null,
+            hasCompletedAssessment: true,
+            lastAssessmentUpdatedAt: serverTimestamp(),
+          };
 
-        if (!userData || !userData.assessmentCompletedAt) {
-          updateData.assessmentCompletedAt = serverTimestamp();
+          if (!userData || !userData.assessmentCompletedAt) {
+            updateData.assessmentCompletedAt = serverTimestamp();
+          } else {
+            updateData.assessmentCompletedAt = userData.assessmentCompletedAt;
+          }
+
+          console.log(`[Firestore Debug] [Assessment Submit] Setting user doc users/${uid} with payload:`, updateData);
+          const writeStartTime = Date.now();
+          await setDoc(userRef, updateData, { merge: true });
+          console.log(`[Firestore Debug] [Assessment Submit] setDoc completed successfully in ${Date.now() - writeStartTime}ms`);
+        } catch (dbErr: unknown) {
+          console.error("[Firestore Debug] [Assessment Submit] Firestore update failed during assessment submission:", dbErr);
+          const e = dbErr as { message?: string; code?: string; stack?: string };
+          console.error(`[Firestore Debug] [Assessment Submit] Details - Code: ${e?.code || "N/A"}, Message: ${e?.message || "N/A"}, Stack: ${e?.stack || "N/A"}`);
+          toast.error("Cloud sync failed. Please check your internet connection.");
+          throw dbErr;
         }
-
-        await setDoc(userRef, updateData, { merge: true });
       }
 
       setHasCompletedAssessment(true);
       toast.success("Assessment complete");
       navigate({ to: "/dashboard" });
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Assessment submit flow failure:", e);
-      toast.error("Assessment failed. Please try again.");
+      const errMsg = (e as Error)?.message || "";
+      if (
+        !errMsg.includes("firestore") &&
+        !errMsg.includes("database") &&
+        !errMsg.includes("network")
+      ) {
+        toast.error("Assessment failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   }
+
+  const onInvalid = (errors: unknown) => {
+    console.error("Form validation errors:", errors);
+    toast.error("Please fill in all fields correctly before generating your plan.");
+  };
 
   async function next() {
     let fieldsToValidate: Array<keyof Profile> = [];
@@ -153,7 +183,7 @@ function AssessmentPage() {
     }
 
     if (step < total) setStep(step + 1);
-    else form.handleSubmit(submit)();
+    else form.handleSubmit(submit, onInvalid)();
   }
   function back() {
     if (step > 1) setStep(step - 1);
@@ -233,7 +263,7 @@ function AssessmentPage() {
 
       <Card className="border-border bg-surface shadow-card-soft">
         <CardContent className="p-6 sm:p-8">
-          <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(submit, onInvalid)} className="space-y-6">
             {step === 1 && (
               <div className="grid gap-6 sm:grid-cols-2">
                 <Field

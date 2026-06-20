@@ -18,6 +18,12 @@ export const isConfigured =
   firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY" &&
   !firebaseConfig.apiKey.includes("placeholder");
 
+if (!isConfigured) {
+  console.warn(
+    "Firebase environment variables are missing or use placeholders. HealthGuard will run in Local/Guest mode.",
+  );
+}
+
 const app =
   getApps().length === 0
     ? initializeApp(

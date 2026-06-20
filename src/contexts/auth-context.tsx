@@ -73,30 +73,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(firebaseUser);
 
       if (firebaseUser && isConfigured) {
-        // Fetch/create Firestore user document
+        // Fetch/create Firestore user document safely with offline fallback and timeouts
+        let hasCompleted = false;
+        const isOffline = !navigator.onLine;
+        const uid = firebaseUser.uid;
+        console.log(`[Firestore Debug] Starting flow for user ${uid}. Offline status: ${isOffline}`);
         try {
-          const userDocRef = doc(db, "users", firebaseUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
+          if (isOffline) {
+            throw new Error("offline");
+          }
+          const userDocRef = doc(db, "users", uid);
+
+          console.log(`[Firestore Debug] Fetching user doc: users/${uid}`);
+          const startTime = Date.now();
+          
+          // 2s timeout race to prevent hangs on flaky connections
+          const userDocSnap = await Promise.race([
+            getDoc(userDocRef),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 2000)),
+          ]);
+          
+          console.log(`[Firestore Debug] Fetch completed in ${Date.now() - startTime}ms. Exists: ${userDocSnap.exists()}`);
 
           if (!userDocSnap.exists()) {
-            await setDoc(userDocRef, {
+            const initialDoc = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName || null,
               hasCompletedAssessment: false,
               createdAt: serverTimestamp(),
-            });
-            setHasCompletedAssessment(false);
+              lastLoginAt: serverTimestamp(),
+            };
+            console.log(`[Firestore Debug] User doc does not exist. Creating via setDoc users/${uid} with payload:`, initialDoc);
+            const createStartTime = Date.now();
+            await setDoc(userDocRef, initialDoc);
+            console.log(`[Firestore Debug] User doc created successfully in ${Date.now() - createStartTime}ms`);
+            hasCompleted = false;
           } else {
             const userData = userDocSnap.data();
-            setHasCompletedAssessment(!!userData?.hasCompletedAssessment);
-          }
-        } catch (dbErr) {
-          console.error("Error fetching/creating user doc in auth-context:", dbErr);
-          setHasCompletedAssessment(false);
-        }
+            console.log(`[Firestore Debug] User data retrieved:`, userData);
+            hasCompleted = !!userData?.hasCompletedAssessment;
 
-        setLoading(false);
+            // Standalone, non-blocking write for lastLoginAt
+            try {
+              console.log(`[Firestore Debug] Updating lastLoginAt for users/${uid}`);
+              const updateStartTime = Date.now();
+              await setDoc(userDocRef, { lastLoginAt: serverTimestamp() }, { merge: true });
+              console.log(`[Firestore Debug] lastLoginAt updated successfully in ${Date.now() - updateStartTime}ms`);
+            } catch (lastLoginErr) {
+              console.error(`[Firestore Debug] Failed to update lastLoginAt:`, lastLoginErr);
+            }
+          }
+          setHasCompletedAssessment(hasCompleted);
+        } catch (dbErr: unknown) {
+          console.error("[Firestore Debug] Error fetching/creating user doc in auth-context:", dbErr);
+          const e = dbErr as { message?: string; code?: string; stack?: string };
+          console.error(`[Firestore Debug] Details - Code: ${e?.code || "N/A"}, Message: ${e?.message || "N/A"}, Stack: ${e?.stack || "N/A"}`);
+          const errMsg = e?.message || "";
+          const isOfflineError =
+            isOffline ||
+            errMsg.includes("offline") ||
+            e?.code === "unavailable" ||
+            errMsg.includes("timeout");
+          if (isOfflineError) {
+            toast.error("Unable to connect. Please check your internet connection.");
+            // Fallback to checking localStorage for onboarding status
+            try {
+              const localProfile = localStorage.getItem("hg.profile.v1");
+              setHasCompletedAssessment(!!localProfile);
+            } catch {
+              setHasCompletedAssessment(false);
+            }
+          } else {
+            setHasCompletedAssessment(false);
+          }
+        } finally {
+          setLoading(false);
+        }
 
         // Logged in: Sync from Express Backend to LocalStorage
         isSyncingRef.current = true;
@@ -269,7 +322,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: unknown) {
       const e = error as FirebaseError;
       console.error(e);
-      toast.error(e.message || "Failed to sign in. Check your credentials.");
+      if (
+        e.code === "auth/invalid-credential" ||
+        e.code === "auth/user-not-found" ||
+        e.code === "auth/wrong-password"
+      ) {
+        toast.error("Invalid email or password.");
+      } else {
+        toast.error(e.message || "Failed to sign in. Check your credentials.");
+      }
       throw e;
     }
   };
