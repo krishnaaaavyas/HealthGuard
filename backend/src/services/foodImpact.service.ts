@@ -199,7 +199,7 @@ export class FoodImpactService {
     if (baseDiabetesImpact > 0) {
       if (userRisks.diabetes > 40) {
         reasons.push(
-          `Contains glycemic drivers which pose higher concern due to your estimated diabetes risk of ${userRisks.diabetes}%.`,
+          `Contains glycemic drivers which pose higher concern due to your estimated diabetes screening index of ${userRisks.diabetes}/100.`,
         );
       } else {
         reasons.push(
@@ -211,7 +211,7 @@ export class FoodImpactService {
     if (baseHypertensionImpact > 0) {
       if (userRisks.hypertension > 40) {
         reasons.push(
-          `High sodium or salt content poses vascular load, highly critical for your estimated hypertension risk of ${userRisks.hypertension}%.`,
+          `High sodium or salt content poses vascular load, highly critical for your estimated hypertension screening index of ${userRisks.hypertension}/100.`,
         );
       } else {
         reasons.push("Contains added sodium/salt which can lead to fluid retention.");
@@ -221,7 +221,7 @@ export class FoodImpactService {
     if (baseHeartImpact > 0) {
       if (userRisks.heart > 40) {
         reasons.push(
-          `Saturated fats or palm oil indicators increase cardiovascular load, significant for your heart risk of ${userRisks.heart}%.`,
+          `Saturated fats or palm oil indicators increase cardiovascular load, significant for your heart screening index of ${userRisks.heart}/100.`,
         );
       } else {
         reasons.push(

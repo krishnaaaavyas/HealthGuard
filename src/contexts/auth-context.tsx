@@ -495,10 +495,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setUser(null);
       setHasCompletedAssessment(null);
-      // Clear local storage and state for clinical assessment privacy
-      localStorage.removeItem(getScopedKey("hg.profile.v1", uid));
-      localStorage.removeItem(getScopedKey("hg.result.v1", uid));
-      localStorage.removeItem(getScopedKey("hg.history.v1", uid));
+      // Clear all local storage keys starting with hg. for clinical assessment privacy
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("hg.")) {
+          localStorage.removeItem(key);
+        }
+      }
       window.dispatchEvent(new CustomEvent("hg:store"));
       toast.success("Successfully signed out");
     } catch (error: unknown) {

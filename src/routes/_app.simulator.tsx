@@ -142,8 +142,9 @@ function ActionImpactExplorerPage() {
                 className="font-display text-6xl font-black tracking-tight"
                 style={{ color: overallColor }}
               >
-                {Math.round(overallPct)}%
+                {result.overallScore}
               </span>
+              <span className="text-xl text-muted-foreground font-semibold">/ 80</span>
             </div>
             <div className="text-center mt-3">
               <span
@@ -154,6 +155,7 @@ function ActionImpactExplorerPage() {
                   backgroundColor: `${overallColor}08`,
                 }}
               >
+                {tr("riskLevel", currentLang)}:{" "}
                 {tr(
                   result.overallRisk.toLowerCase() === "low"
                     ? "low"
@@ -161,8 +163,7 @@ function ActionImpactExplorerPage() {
                       ? "moderateRisk"
                       : "high",
                   currentLang,
-                )}{" "}
-                {tr("fit_risk", currentLang)}
+                )}
               </span>
             </div>
           </CardContent>
@@ -209,10 +210,10 @@ function ActionImpactExplorerPage() {
                             className="font-bold"
                             style={{ color: colorFor(action.currentRisk) }}
                           >
-                            {action.currentRisk}%
+                            {action.currentRisk}/100
                           </span>
                           <span>→</span>
-                          <span className="font-bold text-teal">{action.projectedRisk}%</span>
+                          <span className="font-bold text-teal">{action.projectedRisk}/100</span>
                         </div>
                       </div>
 

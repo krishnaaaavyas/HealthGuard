@@ -538,18 +538,18 @@ export class RiskService {
     // 1. Rationale Builder
     const dbReason =
       scores.diabetes > 50
-        ? `Your elevated Diabetes Risk (${scores.diabetes}%) is driven by indicators including a BMI of ${(profile.weightKg / Math.pow(profile.heightCm / 100, 2)).toFixed(1)} and sedentary lifestyle parameters.`
-        : `Your Diabetes Risk (${scores.diabetes}%) is low/moderate due to balanced demographic and lifestyle markers.`;
+        ? `Your elevated Diabetes screening index (${scores.diabetes}/100) is driven by indicators including a BMI of ${(profile.weightKg / Math.pow(profile.heightCm / 100, 2)).toFixed(1)} and sedentary lifestyle parameters.`
+        : `Your Diabetes screening index (${scores.diabetes}/100) is low/moderate due to balanced demographic and lifestyle markers.`;
 
     const heartReason =
       scores.heart > 50
-        ? `Your high Heart Disease Risk (${scores.heart}%) is influenced by cardiovascular parameters such as age (${profile.age}), smoking status (${profile.smoking}), and weight.`
-        : `Your Heart Disease Risk (${scores.heart}%) remains low/moderate based on reported profiles.`;
+        ? `Your elevated Heart Disease screening index (${scores.heart}/100) is influenced by cardiovascular parameters such as age (${profile.age}), smoking status (${profile.smoking}), and weight.`
+        : `Your Heart Disease screening index (${scores.heart}/100) remains low/moderate based on reported profiles.`;
 
     const htReason =
       scores.hypertension > 50
-        ? `Your elevated Hypertension Risk (${scores.hypertension}%) suggests vascular strain indicators driven by family history, weight profile, or reported habits.`
-        : `Your Hypertension Risk (${scores.hypertension}%) indicates normal baseline vascular markers.`;
+        ? `Your elevated Hypertension screening index (${scores.hypertension}/100) suggests vascular strain indicators driven by family history, weight profile, or reported habits.`
+        : `Your Hypertension screening index (${scores.hypertension}/100) indicates normal baseline vascular markers.`;
 
     // 2. Diet plan builder
     const dietParts = ["Dietary Recommendation Summary:\n"];

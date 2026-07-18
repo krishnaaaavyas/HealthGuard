@@ -78,7 +78,7 @@ test.describe("HealthGuard AI E2E Smoke Suite", () => {
     // 6. PDF REPORT DOWNLOAD TRIGGER
     console.log("Step 7: Testing PDF report download trigger...");
     const downloadPromise = page.waitForEvent("download");
-    await page.click("button:has-text('Download PDF'), button:has-text('Report')");
+    await page.click("button:has-text('Download Report')");
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toContain("healthguard-report");
 

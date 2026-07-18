@@ -23,7 +23,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
   // 1. Mock Authentication Fallback for local testing/dev
   const isMockAllowed =
     process.env.ENABLE_MOCK_AUTH === "true" ||
-    (!isConfigured && process.env.NODE_ENV !== "production");
+    (process.env.ENABLE_MOCK_AUTH !== "false" && !isConfigured && process.env.NODE_ENV !== "production");
 
   if (isMockAllowed && token.startsWith("mock-uid-")) {
     req.user = {

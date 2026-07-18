@@ -15,4 +15,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-});
+  test: {
+    exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
+  },
+} as any);

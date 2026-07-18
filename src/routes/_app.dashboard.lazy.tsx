@@ -1,4 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { useEffect, useState, useRef } from "react";
 import { useHealthResult, useProfile, useHistory } from "@/lib/health-store";
 import { useLanguage, tr } from "@/lib/i18n";
@@ -249,10 +250,10 @@ function Dashboard() {
       doc.setTextColor(255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(20);
-      doc.text("HealthGuard Printable Report", margin, 40);
+      doc.text("Personalized Preventive-Health Assessment", margin, 40);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text("AI-assisted preventive health assessment", margin, 58);
+      doc.text("Lifestyle Screening Index Report", margin, 58);
       doc.setFontSize(9);
       doc.text(new Date().toLocaleString(), pageW - margin, 58, { align: "right" });
       y = 120;
@@ -307,7 +308,7 @@ function Dashboard() {
       y += 10;
 
       // Overall risk
-      title("Overall risk score");
+      title("Overall Screening Index");
       ensureSpace(60);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(28);
@@ -321,17 +322,18 @@ function Dashboard() {
       doc.text(`${result.overallScore}/80`, margin, y);
       y += 26;
       doc.setFontSize(11);
-      doc.text(`${result.overallRisk} risk`, margin, y);
+      const tier = result.overallRisk === "High" ? "Elevated" : result.overallRisk;
+      doc.text(`Screening Tier: ${tier}`, margin, y);
       y += 22;
       doc.setTextColor(20);
 
       // Per-condition
-      title("Per-condition risk");
+      title("Per-Condition Screening Index");
       (
         [
-          ["Diabetes (Type 2)", result.risk.diabetes, result.rationale.diabetes],
-          ["Heart Disease", result.risk.heartDisease, result.rationale.heartDisease],
-          ["Hypertension", result.risk.hypertension, result.rationale.hypertension],
+          ["Diabetes screening index", result.risk.diabetes, result.rationale.diabetes],
+          ["Heart Disease screening index", result.risk.heartDisease, result.rationale.heartDisease],
+          ["Hypertension screening index", result.risk.hypertension, result.rationale.hypertension],
         ] as const
       ).forEach(([name, score, why]) => {
         ensureSpace(40);
@@ -359,10 +361,8 @@ function Dashboard() {
 
       ensureSpace(40);
       y += 12;
-      doc.setFontSize(8);
-      doc.setTextColor(120);
       const disc = doc.splitTextToSize(
-        "Disclaimer: This report contains AI-generated estimates produced for educational and preventive purposes. It is not a clinical diagnosis and does not replace consultation with a qualified medical professional.",
+        "HealthGuard provides educational health screening indices based on self-reported parameters. It does not diagnose, treat, cure, or prevent any clinical condition. Projections are mathematical trends and do not guarantee biological outcomes. Users must consult qualified healthcare professionals for medical advice and clinical testing.",
         cw,
       );
       doc.text(disc, margin, y);
@@ -678,8 +678,9 @@ function Dashboard() {
                     className="font-display text-6xl font-bold tracking-tight"
                     style={{ color: overallColor }}
                   >
-                    <AnimatedScore score={Math.round(overallPct)} />%
+                    <AnimatedScore score={result.overallScore} />
                   </span>
+                  <span className="text-xl text-muted-foreground font-semibold">/ 80</span>
                 </div>
                 <div
                   className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold border"
@@ -693,6 +694,7 @@ function Dashboard() {
                     className="h-1.5 w-1.5 rounded-full animate-pulse"
                     style={{ backgroundColor: overallColor }}
                   />
+                  {tr("riskLevel", currentLang)}:{" "}
                   {tr(
                     result.overallRisk === "Low"
                       ? "low"
@@ -700,8 +702,7 @@ function Dashboard() {
                         ? "moderateRisk"
                         : "high",
                     currentLang,
-                  )}{" "}
-                  {tr("riskText", currentLang)}
+                  )}
                 </div>
               </div>
 
@@ -716,26 +717,29 @@ function Dashboard() {
                 ].map((r) => {
                   const c = colorFor(r.value);
                   return (
-                    <div key={r.name} className="space-y-1">
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-muted-foreground">
-                          {r.name === "Diabetes"
-                            ? tr("diabetes", currentLang)
-                            : r.name === "Heart Disease"
-                              ? tr("heartDisease", currentLang)
-                              : tr("hypertension", currentLang)}
-                        </span>
-                        <span style={{ color: c }}>{r.value}%</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${r.value}%`, backgroundColor: c }}
-                        />
-                      </div>
-                    </div>
+                     <div key={r.name} className="space-y-1">
+                       <div className="flex justify-between text-xs font-semibold">
+                         <span className="text-muted-foreground">
+                           {r.name === "Diabetes"
+                             ? tr("diabetes", currentLang)
+                             : r.name === "Heart Disease"
+                               ? tr("heartDisease", currentLang)
+                               : tr("hypertension", currentLang)}
+                         </span>
+                         <span style={{ color: c }}>{r.value}/100</span>
+                       </div>
+                       <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden">
+                         <div
+                           className="h-full rounded-full transition-all duration-500"
+                           style={{ width: `${r.value}%`, backgroundColor: c }}
+                         />
+                       </div>
+                     </div>
                   );
                 })}
+                <div className="mt-4 pt-3 border-t border-border/20 text-[10px] text-muted-foreground leading-normal">
+                  HealthGuard screening indices are educational numbers generated by custom lifestyle scoring logic and do not represent diagnostic, calibrated disease probabilities or universal medical risk. The Overall Screening Index is a sum summarizing the three lifestyle screening domains (max 80). Consult a physician for clinical testing.
+                </div>
               </div>
             </CardContent>
           </Card>

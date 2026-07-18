@@ -282,7 +282,7 @@ function ProgressPage() {
           label={tr("fit_current_overall_score", currentLang)}
           value={`${result.overallScore}`}
           icon={TrendingDown}
-          hint={`${tr(result.overallRisk.toLowerCase() === "low" ? "low" : result.overallRisk.toLowerCase() === "moderate" ? "moderateRisk" : "high", currentLang)} ${tr("fit_risk", currentLang)}`}
+          hint={`${tr("riskLevel", currentLang)}: ${tr(result.overallRisk.toLowerCase() === "low" ? "low" : result.overallRisk.toLowerCase() === "moderate" ? "moderateRisk" : "high", currentLang)}`}
         />
       </div>
 
@@ -368,9 +368,8 @@ function ProgressPage() {
                         <span className="text-amber-500">{tr("stable", currentLang)}</span>
                       )}
                     </h3>
-                    <p className="text-xs text-muted-foreground">
-                      {tr("confidenceRating", currentLang)}{" "}
-                      {Math.round((prediction.confidence || 0) * 100)}%
+                    <p className="text-xs text-muted-foreground mt-1 leading-normal">
+                      Projections assume the entered trend continues.
                     </p>
                   </div>
                   <div className="text-[10px] text-muted-foreground border-t border-border/40 pt-2.5 mt-4">
@@ -386,10 +385,10 @@ function ProgressPage() {
                         {tr("projected30", currentLang)}
                       </span>
                       <div className="font-display text-3xl font-extrabold text-foreground">
-                        {prediction.predictedRisk30Days}%
+                        {prediction.predictedRisk30Days}/80
                       </div>
                       <Progress
-                        value={prediction.predictedRisk30Days}
+                        value={(prediction.predictedRisk30Days / 80) * 100}
                         className="h-2 [&>div]:bg-teal"
                       />
                     </div>
@@ -398,10 +397,10 @@ function ProgressPage() {
                         {tr("projected90", currentLang)}
                       </span>
                       <div className="font-display text-3xl font-extrabold text-foreground">
-                        {prediction.predictedRisk90Days}%
+                        {prediction.predictedRisk90Days}/80
                       </div>
                       <Progress
-                        value={prediction.predictedRisk90Days}
+                        value={(prediction.predictedRisk90Days / 80) * 100}
                         className="h-2 [&>div]:bg-teal"
                       />
                     </div>

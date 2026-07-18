@@ -241,20 +241,20 @@ export class AIService {
       .join("\n");
 
     const targetLang = langName[profile.language] || "English";
-    const prompt = `You are a clinical wellness coach explaining health assessments.
-We have run clinical models (FINDRISC for Diabetes, Framingham for CVD and Hypertension) and got:
-- Type 2 Diabetes Risk: ${scores.diabetes}%
-- Heart Disease/CVD Risk: ${scores.heart}%
-- Hypertension Risk: ${scores.hypertension}%
+    const prompt = `You are a clinical wellness coach explaining health screening assessments.
+We have run custom screening logic (inspired by selected FINDRISC factors for Diabetes, and custom cardiovascular screening logic using selected Framingham risk factors for CVD and Hypertension) and got:
+- Diabetes Screening Index: ${scores.diabetes}/100
+- Heart Disease/CVD Screening Index: ${scores.heart}/100
+- Hypertension Screening Index: ${scores.hypertension}/100
 
-Primary Risk Drivers:
+Primary Associated Factors:
 ${topDriversStr || "None identified"}
 
-Risk Composition:
+Lifestyle Factors Composition:
 - Modifiable Lifestyle Factors: ${driverResult.modifiableRisk}%
 - Non-modifiable Fixed Factors: ${driverResult.nonModifiableRisk}%
 
-Explain rationales for these risk scores based on demographic profile, family history, and symptoms. Focus on explaining these actual risk drivers and how addressing modifiable lifestyle risk drivers can help reduce overall health risk.
+Explain rationales for these screening scores based on demographic profile, family history, and symptoms. Refer to them as "screening indices", not "calibrated risk probabilities" or "disease chance". Focus on explaining these associated factors and how addressing modifiable lifestyle habits can estimate changes in the screening index.
 Create a customized regional diet plan (e.g., Indian foods if target language is Hindi/Gujarati).
 Create a customized exercise plan.
 Provide prevention tips.
@@ -270,7 +270,7 @@ Do NOT override the computed risk percentages. Return exactly the score percenta
   }
 }
 
-Do NOT provide medical diagnosis or imply clinical certainty. Keep descriptions educational.
+Do NOT provide medical diagnosis, prescribe treatments, or imply clinical certainty. Never present scores as calibrated disease probabilities or guarantee outcomes. Keep descriptions strictly educational and encourage professional clinical screening.
 User profile:
 - Age: ${profile.age}
 - Gender: ${profile.gender}
