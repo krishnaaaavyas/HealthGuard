@@ -602,6 +602,7 @@ The stable V1 MVP continues to use its existing risk-assessment and Gemini recom
 V2 code is isolated behind backend boundaries and disabled by default. No V2 result is shown to users or stored in V1 profile documents.
 
 ### Key Architecture Boundaries:
+
 - **Feature Flags**:
   - `HEALTH_ENGINE_V2_ENABLED=false` (Backend)
   - `VITE_ENABLE_HEALTH_ENGINE_V2=false` (Frontend)

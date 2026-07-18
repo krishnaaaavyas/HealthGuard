@@ -47,8 +47,10 @@ export function readProfileCompatibility(raw: any): Profile | null {
 
 export function readStoredResultCompatibility(raw: any): StoredResult | null {
   if (!raw) return null;
+  const { mlRisk, modelConfidence, modelVersion, experimentalResult, supportingFactors, ...rest } =
+    raw;
   return {
-    ...raw,
+    ...rest,
     schemaVersion: raw.schemaVersion ?? 1,
     engineVersion: raw.engineVersion ?? "legacy",
   };

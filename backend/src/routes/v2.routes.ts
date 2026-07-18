@@ -163,12 +163,10 @@ router.post("/health-assessment", requireAuth, async (req: AuthenticatedRequest,
     });
   } catch (err: any) {
     console.error("V2 health assessment save/evaluate database error:", err);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error: "Database Error: Failed to save V2 health assessment results",
-      });
+    return res.status(500).json({
+      success: false,
+      error: "Database Error: Failed to save V2 health assessment results",
+    });
   }
 });
 

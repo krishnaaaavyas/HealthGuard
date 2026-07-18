@@ -201,7 +201,6 @@ export class AIService {
     userId: string,
     profile: UserProfile & { language: string },
     scores: { diabetes: number; heart: number; hypertension: number },
-    mlRisk?: any,
   ): Promise<any> {
     const snapshot = {
       age: profile.age,
@@ -241,7 +240,6 @@ export class AIService {
       .map((td) => `- ${td.factor} (${td.contribution}% contribution)`)
       .join("\n");
 
-    const mlContext = "";
 
     const targetLang = langName[profile.language] || "English";
     const prompt = `You are a clinical wellness coach explaining health assessments.
@@ -255,7 +253,7 @@ ${topDriversStr || "None identified"}
 
 Risk Composition:
 - Modifiable Lifestyle Factors: ${driverResult.modifiableRisk}%
-- Non-modifiable Fixed Factors: ${driverResult.nonModifiableRisk}%${mlContext}
+- Non-modifiable Fixed Factors: ${driverResult.nonModifiableRisk}%
 
 Explain rationales for these risk scores based on demographic profile, family history, and symptoms. Focus on explaining these actual risk drivers and how addressing modifiable lifestyle risk drivers can help reduce overall health risk.
 Create a customized regional diet plan (e.g., Indian foods if target language is Hindi/Gujarati).

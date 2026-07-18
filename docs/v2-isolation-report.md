@@ -62,11 +62,12 @@ Search matching references classified under categories:
 | :-------------- | :------------------------------- | :------- | :------------------------------------------------------ |
 | `mlRisk`        | `backend/src/server.ts:322`      | E        | Ignored on retrieval in dynamic bootstrap filter.       |
 | `mlRisk`        | `backend/src/server.ts:405`      | E        | Ignored on profile endpoint retrieval.                  |
-| `mlRisk`        | `src/lib/health.functions.ts:41` | E        | Kept optional in Zod parser to load legacy records.     |
+| `mlRisk`        | `src/lib/health-store.ts:51`     | E        | Discarded on loading old LocalStorage records.          |
 | `mlRisk`        | `src/lib/v2-adapter.ts:54`       | B        | Preserved in V2 experimental adaptor files.             |
 | `MlRiskService` | `backend/src/test-runner.ts`     | D        | Corrected to import `ExperimentalRiskHeuristicService`. |
 | `MlRiskService` | `backend/src/server.ts`          | A        | Removed from legacy route handlers.                     |
 | `modelVersion`  | `backend/src/server.ts`          | A        | Removed from legacy DB persistence records.             |
+| `modelVersion`  | `src/lib/health-store.ts:53`     | E        | Discarded on loading old LocalStorage records.          |
 | `/api/v2`       | `backend/src/server.ts:33`       | B        | Mounted experimental routes separately.                 |
 | `/api/v2`       | `backend/src/test-v2-routes.ts`  | D        | Verifies V2 route service responses.                    |
 
@@ -109,7 +110,9 @@ Search matching references classified under categories:
 ---
 
 ## 10. Rollback Instructions
+
 To safely rollback modifications non-destructively:
+
 1. **Feature-Flag Disablement**: Set `HEALTH_ENGINE_V2_ENABLED=false` (Backend) and `VITE_ENABLE_HEALTH_ENGINE_V2=false` (Frontend) in the environment variables to instantly deactivate any experimental features.
 2. **Deployment Rollback**: Revert to the last stable deployment revision corresponding to the `v1.0.0-pre-v2` tag on Vercel and Render.
 3. **Safe Git Revert**: If changes have already been merged to the main line, use non-destructive revert commits (`git revert -m 1 <merge-commit-hash>` or `git revert <commit-hash>`) instead of deleting branch history.

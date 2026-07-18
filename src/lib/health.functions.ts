@@ -38,7 +38,6 @@ const ResultSchema = GeminiResultSchema.extend({
   actionPriorities: z
     .array(z.object({ action: z.string(), estimatedImpact: z.number() }))
     .optional(),
-  mlRisk: z.any().optional(),
 });
 
 export type HealthResult = z.infer<typeof ResultSchema>;
@@ -337,7 +336,6 @@ export async function assessHealth({ data }: { data: z.infer<typeof InputSchema>
     factors: analysis.factors,
     actionPriorities: analysis.actionPriorities,
     bmi: analysis.bmi,
-    mlRisk: analysis.mlRisk || null,
   };
 }
 

@@ -367,7 +367,9 @@ async function testV2Schemas() {
 
   server.close();
   console.log("==================================================");
-  console.log(`TESTS COMPLETE: ${testsPassed} Passed, ${testsFailed} Failed, ${testsSkipped} Skipped`);
+  console.log(
+    `TESTS COMPLETE: ${testsPassed} Passed, ${testsFailed} Failed, ${testsSkipped} Skipped`,
+  );
   console.log("==================================================");
 
   if (testsFailed > 0) {
