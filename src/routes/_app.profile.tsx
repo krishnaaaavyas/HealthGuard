@@ -71,6 +71,9 @@ function ProfilePage() {
 
   useEffect(() => {
     document.title = `${tr("profile", currentLang)} — HealthGuard`;
+    if (typeof window !== "undefined" && window.location.search.includes("settings=true")) {
+      setSettingsOpen(true);
+    }
   }, [currentLang]);
 
   useEffect(() => {

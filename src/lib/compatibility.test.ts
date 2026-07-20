@@ -85,6 +85,24 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/firebase", () => ({
+  auth: { currentUser: { uid: "test-uid", displayName: "Test User" } },
+}));
+
+vi.mock("@/lib/api-client", () => ({
+  apiClient: { get: vi.fn().mockResolvedValue({}) },
+  ApiError: class ApiError extends Error { type = "unknown"; },
+}));
+
+vi.mock("@/lib/timing", () => ({
+  startMeasure: vi.fn(),
+  endMeasure: vi.fn(),
+}));
+
+vi.mock("@/components/ui/shape-grid", () => ({
+  ShapeGrid: () => null,
+}));
+
 // Import the lazy route component (which uses the mocked hooks)
 import { Route } from "../routes/_app.dashboard.lazy";
 
@@ -174,16 +192,15 @@ describe("Frontend Compatibility & Isolation Tests", () => {
 
     const html = renderToString(React.createElement(DashboardComponent));
     
-    // Assert all dashboard headings are rendered (updated for redesign)
-    expect(html).toContain("Your Health Report is Ready");
-    expect(html).toContain("Overall Health Score");
-    expect(html).toContain("Key Risk Factors");
-    expect(html).toContain("AI Health Coach Focus");
+    // Assert all dashboard headings are rendered (updated for 3-state redesign)
+    expect(html).toContain("Your Health Summary is Ready");
+    expect(html).toContain("Health Score");
+    expect(html).toContain("AI Coach");
 
-    // Assert condition breakdown sections are rendered
+    // Assert condition cards are rendered
     expect(html).toContain("Diabetes");
-    expect(html).toContain("Heart Disease");
-    expect(html).toContain("Hypertension");
+    expect(html).toContain("Heart");
+    expect(html).toContain("BMI");
 
     // Assert no ML card is present
     expect(html).not.toContain("mlRisk");

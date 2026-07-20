@@ -160,9 +160,9 @@ function ProgressPage() {
     );
   }
 
-  const goalWeight = Math.round(22 * Math.pow(profile.heightCm / 100, 2));
-  const startWeight = history[0]?.weightKg ?? profile.weightKg;
-  const currWeight = history[history.length - 1]?.weightKg ?? profile.weightKg;
+  const goalWeight = Math.round(22 * Math.pow(((profile.heightCm ?? 170) as number) / 100, 2));
+  const startWeight = history[0]?.weightKg ?? (profile.weightKg ?? 70 as number);
+  const currWeight = history[history.length - 1]?.weightKg ?? (profile.weightKg ?? 70 as number);
   const weightLost = startWeight - currWeight;
   const toGoalWeight = currWeight - goalWeight;
 

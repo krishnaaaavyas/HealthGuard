@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link, useNavigate } from "@tanstack/react-rout
 import { useEffect } from "react";
 import { useLanguage, tr } from "@/lib/i18n";
 import { useAuth } from "@/contexts/auth-context";
-import { SidebarProvider } from "@/components/ui/sidebar";
+
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -63,7 +63,7 @@ function AppLayout() {
     : user.email?.slice(0, 2).toUpperCase() || "PT";
 
   return (
-    <SidebarProvider defaultOpen>
+    <>
       <Toaster richColors position="top-center" />
       <div className="flex h-screen w-full overflow-hidden bg-background">
         <AppSidebar />
@@ -130,6 +130,6 @@ function AppLayout() {
           </main>
         </div>
       </div>
-    </SidebarProvider>
+    </>
   );
 }

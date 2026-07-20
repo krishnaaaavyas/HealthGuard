@@ -273,6 +273,8 @@ export const translations: Dict = {
     progress: { en: "Progress", hi: "प्रगति", gu: "પ્રગતિ" },
     expertReview: { en: "Expert Review", hi: "विशेषज्ञ समीक्षा", gu: "નિષ્ણાત સમીક્ષા" },
     profile: { en: "Profile", hi: "प्रोफ़ाइल", gu: "પ્રોફાઇલ" },
+    reports: { en: "Reports", hi: "रिपोर्ट", gu: "રિપોર્ટ્સ" },
+    settings: { en: "Settings", hi: "सेटिंग्स", gu: "સેટિંગ્સ" },
     about: { en: "About", hi: "के बारे में", gu: "વિશે" },
     support: { en: "Support", hi: "सहायता", gu: "સપોર્ટ" },
     // Dashboard keys
