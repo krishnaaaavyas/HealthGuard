@@ -3,7 +3,6 @@ import { useState } from "react";
 import {
   ShieldCheck,
   ClipboardList,
-  LayoutDashboard,
   Info,
   LifeBuoy,
   User,
@@ -12,6 +11,8 @@ import {
   Activity,
   ChevronRight,
   ChevronLeft,
+  PanelLeft,
+  PanelLeftClose,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,6 @@ import { useLanguage, tr, type Lang } from "@/lib/i18n";
 
 // ── Nav definitions ───────────────────────────────────────────────────────
 const primaryNav = [
-  { to: "/dashboard",  labelKey: "dashboard",        icon: LayoutDashboard },
   { to: "/assessment", labelKey: "healthAssessment", icon: ClipboardList   },
   { to: "/action-plan",labelKey: "actionPlan",       icon: Brain           },
   { to: "/progress",   labelKey: "progress",         icon: Activity        },
@@ -59,8 +59,8 @@ function NavItem({
         "group flex items-center gap-3 rounded-xl border transition-all duration-200 ease-in-out select-none outline-none",
         expanded ? "w-full px-3 py-2.5" : "w-11 h-11 justify-center",
         active
-          ? "bg-teal/10 text-teal border-teal/25"
-          : "bg-transparent text-sidebar-foreground/55 border-transparent hover:bg-teal/[0.055] hover:text-teal hover:border-teal/10"
+          ? "bg-teal/10 text-teal border-teal/25 font-bold"
+          : "bg-transparent text-sidebar-foreground/60 border-transparent hover:bg-teal/[0.055] hover:text-teal hover:border-teal/10"
       )}
     >
       <item.icon
@@ -70,7 +70,8 @@ function NavItem({
       {/* Label — only visible when expanded */}
       <span
         className={cn(
-          "text-[12px] font-semibold whitespace-nowrap transition-all duration-200 leading-none",
+          "text-[12px] whitespace-nowrap transition-all duration-200 leading-none",
+          active ? "font-bold" : "font-semibold",
           expanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2 hidden"
         )}
       >
@@ -97,10 +98,15 @@ function NavItem({
 }
 
 // ── Main sidebar ──────────────────────────────────────────────────────────
-export function AppSidebar() {
+export function AppSidebar({
+  expanded = true,
+  onToggle,
+}: {
+  expanded?: boolean;
+  onToggle?: () => void;
+}) {
   const pathname    = useRouterState({ select: (s) => s.location.pathname });
   const currentLang = useLanguage();
-  const [expanded, setExpanded] = useState(false);
 
   const sidebarWidth = expanded ? "200px" : "72px";
 
@@ -111,25 +117,26 @@ export function AppSidebar() {
         className="relative flex flex-col h-screen border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ease-in-out overflow-hidden shrink-0"
       >
         {/* ── Logo header ─────────────────────────── */}
-        <div className="h-14 flex items-center justify-center border-b border-sidebar-border shrink-0 px-2">
+        <div className={cn("h-14 flex items-center border-b border-sidebar-border shrink-0 px-3", expanded ? "justify-start gap-2.5" : "justify-center")}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
                 to="/"
                 aria-label="HealthGuard Home"
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-teal/10 border border-teal/20 text-teal transition-all duration-200 hover:bg-teal/15 hover:border-teal/30 shrink-0"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-teal/10 border border-teal/20 text-teal transition-all duration-200 hover:bg-teal/15 hover:border-teal/30 shrink-0"
               >
                 <ShieldCheck className="h-5 w-5 shrink-0" strokeWidth={2.4} />
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={14} className="bg-popover text-popover-foreground border border-border/60 shadow-md text-[12px] font-semibold py-1.5 px-3 rounded-lg">
-              HealthGuard
-            </TooltipContent>
+            {!expanded && (
+              <TooltipContent side="right" sideOffset={14} className="bg-popover text-popover-foreground border border-border/60 shadow-md text-[12px] font-semibold py-1.5 px-3 rounded-lg">
+                HealthGuard
+              </TooltipContent>
+            )}
           </Tooltip>
 
-          {/* App name — only shows when expanded */}
           {expanded && (
-            <span className="ml-2.5 text-[13px] font-black tracking-tight text-foreground whitespace-nowrap overflow-hidden">
+            <span className="text-[13px] font-black tracking-tight text-foreground whitespace-nowrap overflow-hidden">
               HealthGuard
             </span>
           )}
@@ -156,34 +163,11 @@ export function AppSidebar() {
           </nav>
         </div>
 
-        {/* ── Footer: toggle + version ─────────────── */}
-        <div className="border-t border-sidebar-border/40 flex flex-col items-center gap-0 shrink-0">
-          {/* Toggle button */}
-          <button
-            onClick={() => setExpanded((e) => !e)}
-            aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-            className={cn(
-              "flex items-center gap-2 w-full transition-all duration-200",
-              "text-sidebar-foreground/40 hover:text-teal hover:bg-teal/5",
-              expanded ? "px-4 py-3 justify-start" : "justify-center py-3"
-            )}
-          >
-            {expanded ? (
-              <>
-                <ChevronLeft className="h-4 w-4 shrink-0" strokeWidth={2} />
-                <span className="text-[11px] font-bold uppercase tracking-widest whitespace-nowrap">Collapse</span>
-              </>
-            ) : (
-              <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={2} />
-            )}
-          </button>
-
-          {/* Version */}
-          <div className={cn("pb-2.5 flex", expanded ? "w-full px-4 justify-start" : "justify-center")}>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/25 select-none">
-              v1.0
-            </span>
-          </div>
+        {/* ── Footer: version ─────────────── */}
+        <div className="border-t border-sidebar-border/30 py-2.5 flex items-center justify-center shrink-0">
+          <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/25 select-none">
+            v1.0
+          </span>
         </div>
       </aside>
     </TooltipProvider>

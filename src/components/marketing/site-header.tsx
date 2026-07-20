@@ -132,7 +132,7 @@ export function SiteHeader() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="border-border" />
                 <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link to="/dashboard">{tr("riskDashboard", currentLang)}</Link>
+                  <Link to="/action-plan">{tr("actionPlan", currentLang)}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link to="/profile">{tr("myProfile", currentLang)}</Link>
@@ -193,8 +193,8 @@ export function SiteHeader() {
                 ) : user ? (
                   <>
                     <Button asChild variant="outline">
-                      <Link to="/dashboard" onClick={() => setOpen(false)}>
-                        {tr("riskDashboard", currentLang)}
+                      <Link to="/action-plan" onClick={() => setOpen(false)}>
+                        {tr("actionPlan", currentLang)}
                       </Link>
                     </Button>
                     <Button asChild variant="outline">

@@ -24,14 +24,14 @@ interface SplitTextProps {
 export default function SplitText({
   text,
   className = "",
-  delay = 50,
-  duration = 1.25,
+  delay = 30,
+  duration = 0.8,
   ease = "power3.out",
-  splitType = "chars",
-  from = { opacity: 0, y: 40 },
+  splitType = "words",
+  from = { opacity: 0, y: 20 },
   to = { opacity: 1, y: 0 },
   threshold = 0.1,
-  rootMargin = "-100px",
+  rootMargin = "-50px",
   textAlign = "center",
   tag = "p",
   onLetterAnimationComplete,
@@ -41,7 +41,6 @@ export default function SplitText({
   const onCompleteRef = useRef(onLetterAnimationComplete);
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
-  // Keep callback ref updated
   useEffect(() => {
     onCompleteRef.current = onLetterAnimationComplete;
   }, [onLetterAnimationComplete]);
@@ -56,10 +55,12 @@ export default function SplitText({
     }
   }, []);
 
+  // Check if text contains Indic / complex scripts (Devanagari, Gujarati, Bengali, etc.)
+  const isComplexScript = /[\u0900-\u0DFF\u0E00-\u0E7F]/.test(text);
+
   useGSAP(
     () => {
       if (!ref.current || !text || !fontsLoaded) return;
-      // Prevent re-animation if already completed
       if (animationCompletedRef.current) return;
       const el = ref.current;
 
@@ -75,19 +76,15 @@ export default function SplitText({
             : `+=${marginValue}${marginUnit}`;
       const start = `top ${startPct}%${sign}`;
 
-      // Select targets for animation
       let targets: Element[] = [];
-      if (splitType.includes("chars")) {
-        targets = Array.from(el.querySelectorAll(".split-char"));
-      } else if (splitType.includes("words")) {
+      if (!isComplexScript && splitType.includes("words")) {
         targets = Array.from(el.querySelectorAll(".split-word"));
-      } else if (splitType.includes("lines")) {
-        targets = Array.from(el.querySelectorAll(".split-line"));
+      } else {
+        targets = [el];
       }
 
       if (targets.length === 0) {
-        // Fallback to characters or words if no classes match
-        targets = Array.from(el.querySelectorAll(".split-char, .split-word"));
+        targets = [el];
       }
 
       const tween = gsap.fromTo(
@@ -97,13 +94,12 @@ export default function SplitText({
           ...to,
           duration,
           ease,
-          stagger: delay / 1000,
+          stagger: isComplexScript ? 0 : delay / 1000,
           scrollTrigger: {
             trigger: el,
             start,
             once: true,
             fastScrollEnd: true,
-            anticipatePin: 0.4,
           },
           onComplete: () => {
             animationCompletedRef.current = true;
@@ -133,6 +129,7 @@ export default function SplitText({
         threshold,
         rootMargin,
         fontsLoaded,
+        isComplexScript,
       ],
       scope: ref,
     }
@@ -142,69 +139,30 @@ export default function SplitText({
 
   const style: React.CSSProperties = {
     textAlign,
-    overflow: "hidden",
     display: tag === "span" ? "inline-block" : "block",
-    whiteSpace: "normal",
-    wordWrap: "break-word",
     willChange: "transform, opacity",
   };
 
-  // Render text content by manually splitting it into styled spans
+  if (isComplexScript) {
+    return (
+      <Tag ref={ref as React.RefObject<any>} style={style} className={className}>
+        {text}
+      </Tag>
+    );
+  }
+
   const renderContent = () => {
-    if (splitType === "words") {
-      return text.split(" ").map((word, wIdx, arr) => (
-        <span
-          key={wIdx}
-          className="split-word inline-block"
-          style={{ willChange: "transform, opacity" }}
-        >
-          {word}
-          {wIdx < arr.length - 1 ? "\u00A0" : ""}
-        </span>
-      ));
-    }
-
-    if (splitType === "lines") {
-      return text.split("\n").map((line, lIdx) => (
-        <span
-          key={lIdx}
-          className="split-line block"
-          style={{ willChange: "transform, opacity" }}
-        >
-          {line}
-        </span>
-      ));
-    }
-
-    // Default to 'chars' or 'words, chars'
     return text.split(" ").map((word, wIdx, arr) => (
-      <span
-        key={wIdx}
-        className="split-word inline-block"
-        style={{ whiteSpace: "nowrap" }}
-      >
-        {word.split("").map((char, cIdx) => (
-          <span
-            key={cIdx}
-            className="split-char inline-block"
-            style={{ willChange: "transform, opacity" }}
-          >
-            {char}
-          </span>
-        ))}
+      <span key={wIdx} className="split-word inline-block" style={{ willChange: "transform, opacity" }}>
+        {word}
         {wIdx < arr.length - 1 ? "\u00A0" : ""}
       </span>
     ));
   };
 
   return (
-    <Tag
-      ref={ref as React.RefObject<any>}
-      style={style}
-      className={`split-parent ${className}`}
-    >
-      <span style={{ display: "none" }}>{text}</span>
-      <span aria-hidden="true">{renderContent()}</span>
+    <Tag ref={ref as React.RefObject<any>} style={style} className={`split-parent ${className}`}>
+      {renderContent()}
     </Tag>
   );
 }

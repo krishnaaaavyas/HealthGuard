@@ -49,7 +49,7 @@ function SignupPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         navigate({ to: redirect as any });
       } else if (hasCompletedAssessment === true) {
-        navigate({ to: "/dashboard" });
+        navigate({ to: "/action-plan" });
       } else {
         navigate({ to: "/assessment" });
       }

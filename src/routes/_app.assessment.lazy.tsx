@@ -505,7 +505,7 @@ function AssessmentPage() {
 
       setHasCompletedAssessment(true);
       toast.success("Assessment complete");
-      navigate({ to: "/dashboard" });
+      navigate({ to: "/action-plan" });
 
       profileSyncService.queueProfileSync(updatedValues, res, historyList);
     } catch (e: unknown) {
@@ -575,7 +575,7 @@ function AssessmentPage() {
               {tr("assessment", lang)}
             </Badge>
             <SplitText
-              text="Tell us about your health"
+              text={tr("tellUsAboutYourHealth", lang)}
               className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground"
               delay={35}
               duration={0.6}
@@ -585,7 +585,7 @@ function AssessmentPage() {
               textAlign="center"
             />
             <p className="text-muted-foreground text-sm max-w-md mx-auto">
-              Choose how you'd like to begin.
+              {tr("chooseHowToBegin", lang)}
             </p>
           </div>
 
@@ -598,25 +598,25 @@ function AssessmentPage() {
                 </div>
                 <div>
                   <h3 className="font-display text-lg font-bold text-foreground">
-                    Upload Blood Report
+                    {tr("uploadBloodReportTitle", lang)}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-1">Fastest method</p>
+                  <p className="text-xs text-muted-foreground mt-1">{tr("fastestMethod", lang)}</p>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Upload a recent blood report and let AI extract your health markers.
+                  {tr("uploadBloodReportDesc", lang)}
                 </p>
                 <ul className="text-xs text-muted-foreground space-y-1.5 pt-2">
                   <li className="flex items-center gap-2">
                     <Check className="h-3.5 w-3.5 text-teal shrink-0" />
-                    AI extracts lab values
+                    {tr("aiExtractsLabValues", lang)}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-3.5 w-3.5 text-teal shrink-0" />
-                    Faster analysis
+                    {tr("fasterAnalysis", lang)}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-3.5 w-3.5 text-teal shrink-0" />
-                    Skip manual entry
+                    {tr("skipManualEntry", lang)}
                   </li>
                 </ul>
               </div>
@@ -624,7 +624,7 @@ function AssessmentPage() {
                 onClick={() => selectFlow("blood")}
                 className="mt-6 w-full bg-teal text-white hover:bg-teal/90 font-semibold cursor-pointer h-10 rounded-xl"
               >
-                Upload Report
+                {tr("uploadReportBtn", lang)}
               </Button>
             </div>
 
@@ -636,25 +636,25 @@ function AssessmentPage() {
                 </div>
                 <div>
                   <h3 className="font-display text-lg font-bold text-foreground">
-                    Health Assessment
+                    {tr("healthAssessment", lang)}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-1 font-medium">Lifestyle & Symptoms</p>
+                  <p className="text-xs text-muted-foreground mt-1 font-medium">{tr("lifestyleAndSymptoms", lang)}</p>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Answer a few questions about your lifestyle and symptoms.
+                  {tr("answerLifestyleQuestionsDesc", lang)}
                 </p>
                 <ul className="text-xs text-muted-foreground space-y-1.5 pt-2">
                   <li className="flex items-center gap-2">
                     <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                    Lifestyle questions
+                    {tr("lifestyleQuestionsItem", lang)}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                    Family history
+                    {tr("familyHistoryItem", lang)}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                    Symptoms
+                    {tr("symptomsItem", lang)}
                   </li>
                 </ul>
               </div>
@@ -662,14 +662,14 @@ function AssessmentPage() {
                 onClick={() => selectFlow("questionnaire")}
                 className="mt-6 w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold cursor-pointer h-10 rounded-xl"
               >
-                Start Assessment
+                {tr("startAssessmentBtn", lang)}
               </Button>
             </div>
 
             {/* Card 3: Complete Health Analysis */}
             <div className="relative group rounded-2xl border border-teal/30 bg-[#f0faf8] dark:bg-[#0e221f] p-6 hover:border-teal/50 hover:bg-[#e4f6f2] dark:hover:bg-[#122b27] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-md">
               <div className="absolute -top-3 right-4 bg-teal text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-sm">
-                ⭐ Recommended
+                ⭐ {tr("recommendedBadge", lang)}
               </div>
               <div className="space-y-4">
                 <div className="h-12 w-12 rounded-xl bg-teal/20 border border-teal/35 flex items-center justify-center text-teal">
@@ -677,25 +677,25 @@ function AssessmentPage() {
                 </div>
                 <div>
                   <h3 className="font-display text-lg font-bold text-foreground">
-                    Complete Health Analysis
+                    {tr("completeHealthAnalysisTitle", lang)}
                   </h3>
-                  <p className="text-xs text-teal font-semibold mt-1">Full Diagnostic Mapping</p>
+                  <p className="text-xs text-teal font-semibold mt-1">{tr("fullDiagnosticMapping", lang)}</p>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Combine your blood report with the questionnaire for the most accurate preventive insights.
+                  {tr("combineBloodReportDesc", lang)}
                 </p>
                 <ul className="text-xs text-muted-foreground space-y-1.5 pt-2">
                   <li className="flex items-center gap-2">
                     <Check className="h-3.5 w-3.5 text-teal shrink-0" />
-                    Blood Report + Lifestyle
+                    {tr("bloodReportPlusLifestyle", lang)}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-3.5 w-3.5 text-teal shrink-0" />
-                    Combined AI Analysis
+                    {tr("combinedAiAnalysis", lang)}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-3.5 w-3.5 text-teal shrink-0" />
-                    Richest health results
+                    {tr("richestHealthResults", lang)}
                   </li>
                 </ul>
               </div>
@@ -703,7 +703,7 @@ function AssessmentPage() {
                 onClick={() => selectFlow("combined")}
                 className="mt-6 w-full bg-teal text-white hover:bg-teal/90 font-semibold cursor-pointer h-10 rounded-xl"
               >
-                Start Complete Analysis
+                {tr("startCompleteAnalysisBtn", lang)}
               </Button>
             </div>
           </div>
@@ -717,10 +717,10 @@ function AssessmentPage() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1.5 font-mono">
-                ⚕ Medical Disclaimer
+                ⚕ {tr("medicalDisclaimerTitle", lang)}
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                HealthGuard provides educational health insights based on the information you provide. It is not a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider for medical decisions.
+                {tr("medicalDisclaimerDesc", lang)}
               </p>
             </div>
           </div>

@@ -53,8 +53,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Noto Sans Devanagari", "Noto Sans Gujarati", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", "Noto Sans Devanagari", "Noto Sans Gujarati", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -197,4 +197,13 @@
 }
 .shadow-elevated {
   box-shadow: var(--shadow-elevated);
+}
+
+/* Indic Script Font Overrides for Hindi (Devanagari) & Gujarati */
+html[lang="hi"], html[lang="hi"] body, html[lang="hi"] *, html[lang="hi"] h1, html[lang="hi"] h2, html[lang="hi"] h3, html[lang="hi"] h4 {
+  font-family: "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif !important;
+}
+
+html[lang="gu"], html[lang="gu"] body, html[lang="gu"] *, html[lang="gu"] h1, html[lang="gu"] h2, html[lang="gu"] h3, html[lang="gu"] h4 {
+  font-family: "Noto Sans Gujarati", ui-sans-serif, system-ui, sans-serif !important;
 }

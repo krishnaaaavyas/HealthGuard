@@ -18,9 +18,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function() {
+        try {
+          var s = localStorage.getItem('hg.theme.v1');
+          var dark = s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+          var l = localStorage.getItem('hg.lang.v1');
+          if (l) {
+            try {
+              var parsed = JSON.parse(l);
+              if (parsed === 'hi' || parsed === 'gu' || parsed === 'en') {
+                document.documentElement.lang = parsed;
+              }
+            } catch (e) {
+              if (l === 'hi' || l === 'gu' || l === 'en') {
+                document.documentElement.lang = l;
+              }
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

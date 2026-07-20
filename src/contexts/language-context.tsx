@@ -19,9 +19,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [langPref]);
 
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
   const setLanguage = (newLang: Lang) => {
     setLangPref(newLang);
     setLanguageState(newLang);
+    document.documentElement.lang = newLang;
     window.dispatchEvent(new CustomEvent("hg:language-change"));
   };
 

@@ -165,10 +165,10 @@ function ProfilePage() {
         {/* Header */}
         <div className="text-center space-y-1">
           <h1 className="font-display text-2xl font-bold uppercase tracking-widest text-foreground">
-            Profile
+            {tr("profile", currentLang)}
           </h1>
           <p className="text-xs text-muted-foreground">
-            Manage your account and health profile
+            {tr("manageAccountAndProfile", currentLang)}
           </p>
         </div>
 
@@ -215,16 +215,16 @@ function ProfilePage() {
                   size="sm"
                   className="h-8 gap-1.5 text-xs border-border/60 hover:bg-accent/40 font-semibold rounded-lg shrink-0 cursor-pointer"
                 >
-                  <Pencil className="h-3 w-3" /> Edit Profile
+                  <Pencil className="h-3 w-3" /> {tr("editProfile", currentLang)}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md border-border bg-surface">
                 <DialogHeader>
-                  <DialogTitle className="text-base font-bold">Edit Profile Details</DialogTitle>
+                  <DialogTitle className="text-base font-bold">{tr("editProfileDetails", currentLang)}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleUpdateName} className="space-y-4 pt-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground">Full Name</label>
+                    <label className="text-xs font-semibold text-muted-foreground">{tr("fullName", currentLang)}</label>
                     <input
                       type="text"
                       value={editName}
@@ -238,7 +238,7 @@ function ProfilePage() {
                   <div className="flex justify-end gap-2 pt-2">
                     <DialogClose asChild>
                       <Button variant="outline" size="sm" type="button" className="h-9 text-xs">
-                        Cancel
+                        {tr("cancel", currentLang)}
                       </Button>
                     </DialogClose>
                     <Button
@@ -250,7 +250,7 @@ function ProfilePage() {
                       {savingName ? (
                         <Loader2 className="h-3 w-3 animate-spin mr-1" />
                       ) : null}
-                      Save Changes
+                      {tr("saveChanges", currentLang)}
                     </Button>
                   </div>
                 </form>
@@ -266,7 +266,7 @@ function ProfilePage() {
             <CardContent className="p-5 flex flex-col justify-between h-[150px]">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-display text-sm font-bold text-foreground">Assessment</h3>
+                  <h3 className="font-display text-sm font-bold text-foreground">{tr("assessment", currentLang)}</h3>
                   {loadingStatus ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-teal" />
                   ) : (
@@ -277,20 +277,20 @@ function ProfilePage() {
                           : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                       }`}
                     >
-                      {hasCompleted ? "✓ Complete" : "⌛ Pending"}
+                      {hasCompleted ? `✓ ${tr("complete", currentLang)}` : `⌛ ${tr("pending", currentLang)}`}
                     </span>
                   )}
                 </div>
 
                 <div className="space-y-1 pt-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Status</span>
+                    <span>{tr("status", currentLang)}</span>
                     <span className="font-medium text-foreground">
-                      {hasCompleted ? "Complete" : "Pending"}
+                      {hasCompleted ? tr("complete", currentLang) : tr("pending", currentLang)}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Last completed</span>
+                    <span>{tr("lastCompleted", currentLang)}</span>
                     <span className="font-medium text-foreground">
                       {formatDate(assessmentStatus?.lastAssessmentUpdate)}
                     </span>
@@ -303,7 +303,7 @@ function ProfilePage() {
                   onClick={() => navigate({ to: "/assessment", search: { mode: "reassess" } })}
                   className="bg-teal text-white hover:bg-teal/90 font-semibold text-xs h-8 px-4 rounded-lg cursor-pointer inline-flex items-center gap-1"
                 >
-                  Reassess <ArrowRight className="h-3 w-3" />
+                  {tr("reassess", currentLang)} <ArrowRight className="h-3 w-3" />
                 </Button>
               </div>
             </CardContent>
@@ -314,7 +314,7 @@ function ProfilePage() {
             <CardContent className="p-5 flex flex-col justify-between h-[150px]">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-display text-sm font-bold text-foreground">Blood Report</h3>
+                  <h3 className="font-display text-sm font-bold text-foreground">{tr("bloodReport", currentLang)}</h3>
                   {loadingStatus ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-teal" />
                   ) : (
@@ -325,20 +325,20 @@ function ProfilePage() {
                           : "bg-muted text-muted-foreground border-border/40"
                       }`}
                     >
-                      {hasBloodReport ? "✓ Uploaded" : "No Report"}
+                      {hasBloodReport ? `✓ ${tr("uploaded", currentLang)}` : tr("noReport", currentLang)}
                     </span>
                   )}
                 </div>
 
                 <div className="space-y-1 pt-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Uploaded</span>
+                    <span>{tr("uploaded", currentLang)}</span>
                     <span className="font-medium text-foreground">
-                      {hasBloodReport ? "Yes" : "No"}
+                      {hasBloodReport ? tr("yes", currentLang) : tr("no", currentLang)}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Last upload</span>
+                    <span>{tr("lastUpload", currentLang)}</span>
                     <span className="font-medium text-foreground">
                       {formatDate(assessmentStatus?.bloodReportDate)}
                     </span>
@@ -356,7 +356,7 @@ function ProfilePage() {
                   variant="outline"
                   className="border-border/60 hover:bg-accent/40 text-foreground font-semibold text-xs h-8 px-4 rounded-lg cursor-pointer inline-flex items-center gap-1"
                 >
-                  {hasBloodReport ? "View Report" : "Upload Report"} <ArrowRight className="h-3 w-3" />
+                  {hasBloodReport ? tr("viewReport", currentLang) : tr("uploadReportBtn", currentLang)} <ArrowRight className="h-3 w-3" />
                 </Button>
               </div>
             </CardContent>
@@ -367,18 +367,18 @@ function ProfilePage() {
         <Card className="border-border/60 bg-surface/50 shadow-card-soft backdrop-blur-sm">
           <CardContent className="p-5 space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Quick Actions
+              {tr("quickActions", currentLang)}
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {/* Dashboard */}
+              {/* Action Plan */}
               <Button
                 asChild
                 variant="outline"
                 className="h-10 text-xs border-border/60 hover:bg-teal/5 hover:border-teal/30 hover:text-teal font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all duration-200"
               >
-                <Link to="/dashboard">
+                <Link to="/action-plan">
                   <LayoutDashboard className="h-4 w-4 shrink-0 text-teal/80" />
-                  Dashboard
+                  {tr("actionPlanNav", currentLang)}
                 </Link>
               </Button>
 
@@ -389,7 +389,7 @@ function ProfilePage() {
                 className="h-10 text-xs border-border/60 hover:bg-teal/5 hover:border-teal/30 hover:text-teal font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all duration-200"
               >
                 <FileDown className="h-4 w-4 shrink-0 text-teal/80" />
-                Download PDF
+                {tr("downloadPdf", currentLang)}
               </Button>
 
               {/* Upload Report */}
@@ -400,7 +400,7 @@ function ProfilePage() {
               >
                 <Link to="/assessment" search={{ mode: "retake", step: 5 }}>
                   <UploadCloud className="h-4 w-4 shrink-0 text-teal/80" />
-                  Upload Report
+                  {tr("uploadReportBtn", currentLang)}
                 </Link>
               </Button>
 
@@ -412,12 +412,12 @@ function ProfilePage() {
                     className="h-10 text-xs border-border/60 hover:bg-teal/5 hover:border-teal/30 hover:text-teal font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all duration-200"
                   >
                     <Settings className="h-4 w-4 shrink-0 text-teal/80" />
-                    Settings
+                    {tr("settings", currentLang)}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md border-border bg-surface">
                   <DialogHeader>
-                    <DialogTitle className="text-base font-bold">Account Settings</DialogTitle>
+                    <DialogTitle className="text-base font-bold">{tr("accountSettings", currentLang)}</DialogTitle>
                   </DialogHeader>
 
                   <div className="space-y-4 py-2">
@@ -426,8 +426,8 @@ function ProfilePage() {
                       <div className="flex items-center gap-2.5">
                         <Globe className="h-4 w-4 text-muted-foreground" />
                         <div className="text-left">
-                          <p className="text-xs font-semibold text-foreground">Language</p>
-                          <p className="text-[10px] text-muted-foreground">Change interface language</p>
+                          <p className="text-xs font-semibold text-foreground">{tr("language", currentLang)}</p>
+                          <p className="text-[10px] text-muted-foreground">{tr("changeInterfaceLanguage", currentLang)}</p>
                         </div>
                       </div>
                       <LanguageSwitcher variant="compact" />
@@ -438,9 +438,9 @@ function ProfilePage() {
                       <div className="flex items-center gap-2.5">
                         <Settings className="h-4 w-4 text-muted-foreground" />
                         <div className="text-left">
-                          <p className="text-xs font-semibold text-foreground">Interface Theme</p>
+                          <p className="text-xs font-semibold text-foreground">{tr("interfaceTheme", currentLang)}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {theme === "dark" ? "Dark mode active" : "Light mode active"}
+                            {theme === "dark" ? tr("darkModeActive", currentLang) : tr("lightModeActive", currentLang)}
                           </p>
                         </div>
                       </div>
@@ -512,7 +512,7 @@ function ProfilePage() {
                               onClick={() => setShowDeleteConfirm(false)}
                               className="h-7 text-[10px]"
                             >
-                              Cancel
+                              {tr("cancel", currentLang)}
                             </Button>
                             <Button
                               size="sm"
@@ -544,7 +544,7 @@ function ProfilePage() {
           className="text-xs font-semibold text-muted-foreground hover:text-red-500 hover:underline cursor-pointer inline-flex items-center gap-1.5 transition-colors"
         >
           <LogOut className="h-3.5 w-3.5" />
-          Sign Out
+          {tr("signOut", currentLang)}
         </button>
       </div>
     </div>
