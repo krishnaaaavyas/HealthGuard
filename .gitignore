@@ -38,7 +38,6 @@ backend/dist/
 backend/.env
 .env
 .env.*
-!.env.example
 
 # Python venv and data cache
 .venv/
@@ -61,8 +60,42 @@ health-intelligence/data/external/
 *.dta
 *.sav
 *.sas7bdat
+*.xpt
+*.parquet
+*.feather
+*.arrow
+*.pkl
+*.pickle
+*.joblib
+*.onnx
 C:\Users\admin\Documents\HealthGuard-Restricted-Data
 
 # Private / restricted data folder — real dataset goes here, never committed
 health-intelligence/private-data/
 !health-intelligence/private-data/.gitkeep
+
+
+# Restricted datasets
+*.dta
+*.sav
+*.sas7bdat
+
+# Derived participant-level datasets
+*.parquet
+*.feather
+
+# Private model artifacts
+health-intelligence/models/private/
+health-intelligence/model-output/
+
+# Local LASI outputs
+lasi-local-output/
+restricted-data/
+private-data/
+derived-secure/
+model-output/
+evaluation-output/
+
+# Local path configuration
+.env.local
+.env.research
