@@ -95,17 +95,17 @@ router.post("/health-assessment", requireAuth, async (req: AuthenticatedRequest,
   if (hasValidSys && hasValidDia) {
     if (sys >= 180 || dia >= 120) {
       isBPEmergency = true;
-      bpAlertMessage = `Hypertensive emergency alert: Blood pressure measured at ${sys}/${dia} mmHg. Seek immediate medical attention.`;
+      bpAlertMessage = "A reported blood-pressure measurement requires immediate medical attention.";
     }
   } else if (hasValidSys) {
     if (sys >= 180) {
       isBPEmergency = true;
-      bpAlertMessage = `Hypertensive emergency alert: Systolic blood pressure measured at ${sys} mmHg. Seek immediate medical attention.`;
+      bpAlertMessage = "A reported blood-pressure measurement requires immediate medical attention.";
     }
   } else if (hasValidDia) {
     if (dia >= 120) {
       isBPEmergency = true;
-      bpAlertMessage = `Hypertensive emergency alert: Diastolic blood pressure measured at ${dia} mmHg. Seek immediate medical attention.`;
+      bpAlertMessage = "A reported blood-pressure measurement requires immediate medical attention.";
     }
   }
 
@@ -124,7 +124,7 @@ router.post("/health-assessment", requireAuth, async (req: AuthenticatedRequest,
     safetyFlags.push({
       flagType: "red-flag",
       moduleId: "diabetes",
-      message: `Glycemic emergency alert: Fasting blood sugar measured at ${assessment.fastingBloodSugar} mg/dL. Consult a physician immediately.`,
+      message: "A reported glucose measurement requires immediate medical attention.",
       clinicalActionRequired: true,
     });
   }
@@ -133,9 +133,35 @@ router.post("/health-assessment", requireAuth, async (req: AuthenticatedRequest,
     safetyFlags.push({
       flagType: "red-flag",
       moduleId: "cardiovascular",
-      message: `Cardiac symptom warning: "${assessment.symptoms}" indicates potentially critical cardiovascular distress. Seek emergency medical attention.`,
+      message: "Reported symptoms may indicate a medical emergency. Seek immediate medical attention.",
       clinicalActionRequired: true,
     });
+  }
+
+  const emergencyOverride = safetyFlags.some((flag) => flag.clinicalActionRequired);
+
+  if (emergencyOverride) {
+    try {
+      const docRef = db.collection("assessmentsV2").doc(uid);
+      const savePayload = {
+        ...context,
+        bmi,
+        safetyFlags,
+        moduleResults: [],
+        routingDecision: "emergency-safety-override",
+        urgentSafetyGuidance: ["Seek immediate medical attention or contact local emergency services."],
+        updatedAt: new Date().toISOString(),
+      };
+      await docRef.set(savePayload, { merge: true });
+      return res.json({
+        success: true,
+        message: "Emergency safety guidance returned.",
+        data: savePayload,
+      });
+    } catch {
+      console.error("V2 emergency assessment save failed status=database-error");
+      return res.status(500).json({ success: false, error: "Database Error: Failed to save safety results" });
+    }
   }
 
   // Run modules independently (partial failure handling)

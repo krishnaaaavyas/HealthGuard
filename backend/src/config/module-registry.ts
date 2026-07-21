@@ -49,17 +49,14 @@ export const diseaseModuleRegistry: Record<string, HealthModule> = {
         // Use the synchronized Zod response schema.
         const parsed = HealthModuleResultSchema.safeParse(data);
         if (!parsed.success) {
-          console.warn("FastAPI diabetes response validation failed:", parsed.error.format());
+          console.warn("module=diabetes status=invalid-response-schema");
           throw new Error("Invalid model-service response schema");
         }
 
         return parsed.data;
       } catch (err: any) {
         clearTimeout(timeoutId);
-        console.warn(
-          "FastAPI diabetes evaluation failed, timed out, or returned invalid JSON. Returning model-unavailable.",
-          err.message || String(err),
-        );
+        console.warn("module=diabetes status=model-unavailable");
 
         return {
           moduleId: "diabetes-screening",

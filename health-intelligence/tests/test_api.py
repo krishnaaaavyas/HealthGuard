@@ -1,5 +1,6 @@
 import unittest
 import os
+import json
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 import app.main as main_module
@@ -162,21 +163,16 @@ class TestModelInstalled(unittest.TestCase):
         self.assertEqual(data["status"], "ok")
         self.assertEqual(data["model_installed"], True)
 
-    def test_evaluate_returns_complete_with_screening_probability(self):
-        """/v1/modules/diabetes/evaluate returns status='complete' with a
-        screeningProbability float when a model is patched as loaded."""
+    def test_evaluate_returns_completed_without_screening_probability(self):
         response = client.post(
             "/v1/modules/diabetes/evaluate", json=_EVAL_PAYLOAD
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
 
-        self.assertEqual(data["status"], "complete")
-        self.assertIn("screeningProbability", data)
-        prob = data["screeningProbability"]
-        self.assertIsInstance(prob, float)
-        self.assertGreaterEqual(prob, 0.0)
-        self.assertLessEqual(prob, 1.0)
+        self.assertEqual(data["status"], "completed")
+        self.assertNotIn("screeningProbability", data)
+        self.assertIn("screeningSignal", data)
 
         # Governance fields must be present
         self.assertIn("RESEARCH_ONLY_MODEL", data.get("reasonCodes", []))
@@ -216,12 +212,16 @@ class TestThresholdRiskTier(unittest.TestCase):
     def test_probability_above_cutoff_is_elevated(self):
         response = self._evaluate_with_probability(0.80, cutoff=0.20)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["screeningSignal"], "elevated")
+        self.assertEqual(response.json()["screeningSignal"], "elevated-screening-signal")
 
     def test_probability_below_cutoff_is_lower(self):
         response = self._evaluate_with_probability(0.05, cutoff=0.20)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["screeningSignal"], "not_elevated")
+        self.assertEqual(response.json()["screeningSignal"], "below-screening-threshold")
+
+    def test_probability_is_absent_recursively(self):
+        response = self._evaluate_with_probability(0.80, cutoff=0.20)
+        self.assertNotIn("screeningProbability", json.dumps(response.json()))
 
     def test_missing_active_threshold_falls_back_safely(self):
         import numpy as np

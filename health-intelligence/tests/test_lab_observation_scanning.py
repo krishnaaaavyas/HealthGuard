@@ -114,6 +114,17 @@ class TestVerifiedFbsDetected:
         assert entry["isVerified"] is True
         assert "note" in entry
 
+    def test_legacy_verified_means_user_not_clinician_confirmed(self):
+        payload = _make_payload([_verified_obs("FBS", 126.0, "mg/dL")])
+        entry = client.post(
+            "/v1/modules/diabetes/evaluate", json=payload
+        ).json()["labEvidenceAvailable"][0]
+        assert entry["userConfirmed"] is True
+        assert entry["verifiedByClinician"] is False
+        assert entry["verificationStatus"] == "user-confirmed"
+        assert entry["source"] == "unknown"
+        assert entry["plausibleRangePassed"] is True
+
     def test_fbs_aliases_also_detected(self):
         """Common FBS aliases (fasting_glucose, FPG) also match."""
         for code in ("fasting_glucose", "FPG", "Fasting_Blood_Sugar"):
@@ -243,9 +254,7 @@ class TestSanityRangeCheck:
         )
         # A warning must have been emitted — not a silent drop
         warn_msgs = [r.message for r in caplog.records if r.levelno >= logging.WARNING]
-        assert any("10" in m and "FBS" in m or "fasting_blood_sugar" in m for m in warn_msgs), (
-            f"Expected a WARNING mentioning code and value; got: {warn_msgs}"
-        )
+        assert "LAB_VALUE_OUTSIDE_PLAUSIBLE_RANGE" in warn_msgs
 
     def test_fbs_above_400_excluded(self, caplog):
         """FBS 999 mg/dL (> 400) is excluded and a WARNING is logged."""
@@ -258,9 +267,7 @@ class TestSanityRangeCheck:
         lab_ev = resp.json().get("labEvidenceAvailable", [])
         assert lab_ev == []
         warn_msgs = [r.message for r in caplog.records if r.levelno >= logging.WARNING]
-        assert any("999" in m or "400" in m for m in warn_msgs), (
-            f"Expected a WARNING; got: {warn_msgs}"
-        )
+        assert "LAB_VALUE_OUTSIDE_PLAUSIBLE_RANGE" in warn_msgs
 
     def test_hba1c_above_18_excluded(self, caplog):
         """HbA1c 25 % (> 18) is excluded and a WARNING is logged."""
@@ -275,9 +282,7 @@ class TestSanityRangeCheck:
             f"HbA1c 25% must be excluded; got {lab_ev}"
         )
         warn_msgs = [r.message for r in caplog.records if r.levelno >= logging.WARNING]
-        assert any("25" in m or "18" in m for m in warn_msgs), (
-            f"Expected a WARNING; got: {warn_msgs}"
-        )
+        assert "LAB_VALUE_OUTSIDE_PLAUSIBLE_RANGE" in warn_msgs
 
     def test_hba1c_below_3_excluded(self, caplog):
         """HbA1c 1.5 % (< 3) is excluded and a WARNING is logged."""
@@ -290,9 +295,7 @@ class TestSanityRangeCheck:
         lab_ev = resp.json().get("labEvidenceAvailable", [])
         assert lab_ev == []
         warn_msgs = [r.message for r in caplog.records if r.levelno >= logging.WARNING]
-        assert any("1.5" in m or "3.0" in m or "hba1c" in m.lower() for m in warn_msgs), (
-            f"Expected a WARNING; got: {warn_msgs}"
-        )
+        assert "LAB_VALUE_OUTSIDE_PLAUSIBLE_RANGE" in warn_msgs
 
     def test_fbs_at_exact_boundary_included(self):
         """FBS at exact boundary values (50 and 400) must be included, not excluded."""
@@ -331,7 +334,7 @@ class TestSanityRangeCheck:
 
 
 # ---------------------------------------------------------------------------
-# [LAB-5] screeningProbability is unaffected by labObservations (no leakage)
+# [LAB-5] screening signal is unaffected by labObservations (no leakage)
 # ---------------------------------------------------------------------------
 
 class TestNoScoreLeak:
@@ -360,35 +363,31 @@ class TestNoScoreLeak:
         monkeypatch.setattr(main_module, "_model_metadata", mock_metadata)
         monkeypatch.setattr(main_module, "_model_active_cutoff", 0.5)
 
-    def _get_prob(self, lab_observations: list) -> float:
+    def _get_signal(self, lab_observations: list) -> str:
         payload = _make_payload(lab_observations)
         resp = client.post("/v1/modules/diabetes/evaluate", json=payload)
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "complete", (
+        assert data["status"] == "completed", (
             f"Expected model to be installed and active; got status={data['status']}"
         )
-        return data["screeningProbability"]
+        assert "screeningProbability" not in data
+        return data["screeningSignal"]
 
     def test_probability_same_with_no_labs(self):
         """Baseline: prob with empty labObservations."""
-        prob = self._get_prob([])
-        assert isinstance(prob, float)
-        assert 0.0 <= prob <= 1.0
+        assert self._get_signal([]) == "below-screening-threshold"
 
     def test_probability_unchanged_by_in_range_fbs(self):
         """Adding a verified in-range FBS does not change the probability."""
-        prob_no_labs = self._get_prob([])
-        prob_with_fbs = self._get_prob([_verified_obs("FBS", 126.0, "mg/dL")])
-        assert prob_no_labs == prob_with_fbs, (
-            f"Probability changed: without labs={prob_no_labs}, "
-            f"with FBS={prob_with_fbs}. Lab observations must not affect scoring."
-        )
+        signal_no_labs = self._get_signal([])
+        signal_with_fbs = self._get_signal([_verified_obs("FBS", 126.0, "mg/dL")])
+        assert signal_no_labs == signal_with_fbs
 
     def test_probability_unchanged_by_hba1c(self):
         """Adding a verified HbA1c does not change the probability."""
-        prob_no_labs  = self._get_prob([])
-        prob_with_hba = self._get_prob([_verified_obs("HbA1c", 7.2, "%")])
+        prob_no_labs  = self._get_signal([])
+        prob_with_hba = self._get_signal([_verified_obs("HbA1c", 7.2, "%")])
         assert prob_no_labs == prob_with_hba
 
     def test_probability_unchanged_by_full_lipid_panel(self):
@@ -399,16 +398,16 @@ class TestNoScoreLeak:
             _verified_obs("HDL",               45.0,  "mg/dL"),
             _verified_obs("Triglycerides",     175.0, "mg/dL"),
         ]
-        prob_no_labs    = self._get_prob([])
-        prob_with_lipid = self._get_prob(lipids)
+        prob_no_labs    = self._get_signal([])
+        prob_with_lipid = self._get_signal(lipids)
         assert prob_no_labs == prob_with_lipid, (
             f"Lipid panel affected probability: {prob_no_labs} → {prob_with_lipid}"
         )
 
     def test_probability_unchanged_by_out_of_range_entry(self):
         """Even an excluded (out-of-range) observation must not affect scoring."""
-        prob_no_labs   = self._get_prob([])
-        prob_with_oor  = self._get_prob([_verified_obs("FBS", 10.0, "mg/dL")])
+        prob_no_labs   = self._get_signal([])
+        prob_with_oor  = self._get_signal([_verified_obs("FBS", 10.0, "mg/dL")])
         assert prob_no_labs == prob_with_oor, (
             f"Out-of-range FBS changed probability: {prob_no_labs} → {prob_with_oor}"
         )
@@ -422,8 +421,8 @@ class TestNoScoreLeak:
             _unverified_obs("HbA1c",         5.5,   "%"),        # unverified, excluded
             _verified_obs("LDL",             130.0, "mg/dL"),    # cardiovascular, included
         ]
-        prob_no_labs = self._get_prob([])
-        prob_mixed   = self._get_prob(mixed)
+        prob_no_labs = self._get_signal([])
+        prob_mixed   = self._get_signal(mixed)
         assert prob_no_labs == prob_mixed, (
             f"Mixed payload changed probability: {prob_no_labs} → {prob_mixed}"
         )
@@ -468,7 +467,4 @@ class TestMessyFrontendLabInputs:
         assert response.status_code == 200
         assert response.json()["labEvidenceAvailable"] == []
         warnings = [record.message for record in caplog.records]
-        assert any(
-            "null or non-finite" in message and "FBS" in message
-            for message in warnings
-        )
+        assert "LAB_VALUE_NON_NUMERIC_OR_MISSING" in warnings

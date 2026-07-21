@@ -158,7 +158,7 @@ export class AIService {
         const data = docSnap.data();
         const currentHash = this.getSnapshotHash(currentSnapshot);
         if (data && data.snapshotHash === currentHash) {
-          console.log(`Cache hit for user ${userId}, type: ${type}`);
+          console.log(`module=ai-cache status=hit type=${type}`);
           return data.content;
         }
       }
@@ -188,7 +188,7 @@ export class AIService {
         profileSnapshot: snapshot,
         createdAt: new Date().toISOString(),
       });
-      console.log(`Cache saved for user ${userId}, type: ${type}`);
+      console.log(`module=ai-cache status=saved type=${type}`);
     } catch (err) {
       console.warn("Error writing recommendation cache:", err);
     }

@@ -280,6 +280,65 @@ async function testSecurity() {
     console.log("⚠️ Skip: Firestore Emulator rules test (Firestore Emulator is not installed or configured in this environment)");
   });
 
+  const httpFetch = global.fetch;
+  const labRequest = () => httpFetch(`${baseUrl}/lab-report/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer mock-uid-patient-A" },
+    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "synthetic fixture" }] }] }),
+  });
+
+  await runTest("Lab extraction - Missing Gemini configuration returns safe 503", async () => {
+    const previous = process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    const res = await labRequest();
+    if (previous) process.env.GEMINI_API_KEY = previous;
+    const body: any = await res.json();
+    if (res.status !== 503 || body.reasonCode !== "OCR_SERVICE_UNAVAILABLE") {
+      throw new Error(`Expected extraction-unavailable 503, got ${res.status}`);
+    }
+    if (Object.keys(body.biomarkers || {}).length !== 0) throw new Error("Fabricated biomarkers returned");
+  });
+
+  await runTest("Lab extraction - Gemini failure returns safe 503", async () => {
+    const originalFetch = global.fetch;
+    process.env.GEMINI_API_KEY = "synthetic-test-key";
+    global.fetch = async () => new Response("private upstream error", { status: 500 });
+    try {
+      const res = await labRequest();
+      const body: any = await res.json();
+      if (res.status !== 503 || Object.keys(body.biomarkers || {}).length) {
+        throw new Error("Gemini failure did not fail safely");
+      }
+    } finally { global.fetch = originalFetch; }
+  });
+
+  await runTest("Lab extraction - Malformed Gemini JSON returns safe 503", async () => {
+    const originalFetch = global.fetch;
+    process.env.GEMINI_API_KEY = "synthetic-test-key";
+    global.fetch = async () => new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ text: "{malformed" }] } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+    try {
+      const res = await labRequest();
+      if (res.status !== 503) throw new Error(`Expected 503, got ${res.status}`);
+    } finally { global.fetch = originalFetch; }
+  });
+
+  await runTest("Lab extraction - Valid extraction preserves biomarker keys", async () => {
+    const originalFetch = global.fetch;
+    process.env.GEMINI_API_KEY = "synthetic-test-key";
+    global.fetch = async () => new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ text: JSON.stringify({ fastingBloodSugar: { value: 99, unit: "mg/dL" } }) }] } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+    try {
+      const res = await labRequest();
+      const body: any = await res.json();
+      if (res.status !== 200 || body.status !== "extracted" || !body.fastingBloodSugar) {
+        throw new Error("Valid extraction contract changed");
+      }
+    } finally { global.fetch = originalFetch; }
+  });
+
   server.close();
 
   console.log("==================================================");

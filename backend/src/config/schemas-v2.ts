@@ -86,6 +86,37 @@ export const LabObservationSchema = z.object({
   observedAt: z.string().datetime(),
   isVerified: z.boolean().default(false),
   verifiedBy: z.string().optional(),
+  source: z.enum(["ocr", "manual", "report", "unknown"]).optional(),
+  userConfirmed: z.boolean().optional(),
+  unitConfirmed: z.boolean().optional(),
+  verifiedByClinician: z.boolean().optional(),
+  extractionConfidence: z.number().min(0).max(1).optional(),
+  verificationStatus: z.enum(["unreviewed", "user-confirmed", "clinician-verified"]).optional(),
+}).transform((observation) => {
+  const code = observation.code.toLowerCase().replace(/[\s-]+/g, "_");
+  const ranges: Record<string, [number, number]> = {
+    fbs: [50, 400], fasting_glucose: [50, 400], fasting_blood_sugar: [50, 400],
+    hba1c: [3, 18], hb_a1c: [3, 18], a1c: [3, 18],
+  };
+  const range = ranges[code];
+  const plausibleRangePassed = range
+    ? observation.value >= range[0] && observation.value <= range[1]
+    : Number.isFinite(observation.value) && observation.value >= 0;
+  const userConfirmed = observation.userConfirmed ?? observation.isVerified;
+  const verifiedByClinician = observation.verifiedByClinician === true;
+  return {
+    ...observation,
+    source: observation.source ?? "unknown" as const,
+    plausibleRangePassed,
+    userConfirmed,
+    unitConfirmed: observation.unitConfirmed ?? false,
+    verifiedByClinician,
+    verificationStatus: verifiedByClinician
+      ? "clinician-verified" as const
+      : userConfirmed
+        ? "user-confirmed" as const
+        : "unreviewed" as const,
+  };
 });
 
 export const RiskContributorSchema = z.object({
@@ -138,6 +169,10 @@ export const HealthModuleResultSchema = z.object({
   ]),
   score: z.number().min(0).max(100).optional(),
   riskTier: z.enum(["lower", "moderate", "elevated"]).optional(),
+  screeningSignal: z.enum([
+    "elevated-screening-signal",
+    "below-screening-threshold",
+  ]).optional(),
   evidenceCompleteness: z.number().min(0).max(1),
   confidenceLevel: z.enum([
     "insufficient",

@@ -12,8 +12,8 @@ If loading fails for any reason (file absent, corrupted, unrecognised
 lifecycle state, inference error), the endpoint falls back to the same
 "model-unavailable" response as before — it never crashes and never guesses.
 
-The response schema/shape is identical in both branches; only the values of
-"status", "screeningProbability", and "reasonCodes" differ.
+The response exposes a threshold-based screening signal, never the internal
+model probability. Unavailable responses retain the same fail-safe contract.
 """
 
 import json
@@ -21,8 +21,8 @@ import logging
 import math
 from pathlib import Path
 from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, root_validator
+from typing import List, Optional, Literal
 
 log = logging.getLogger(__name__)
 
@@ -142,6 +142,43 @@ class LabObservation(BaseModel):
     observedAt: str
     isVerified: bool = False
     verifiedBy: Optional[str] = None
+    source: Literal["ocr", "manual", "report", "unknown"] = "unknown"
+    plausibleRangePassed: bool = False
+    userConfirmed: bool = False
+    unitConfirmed: bool = False
+    verifiedByClinician: bool = False
+    extractionConfidence: Optional[float] = None
+    verificationStatus: Literal[
+        "unreviewed", "user-confirmed", "clinician-verified"
+    ] = "unreviewed"
+
+    @root_validator(pre=False, skip_on_failure=True)
+    def normalize_verification(cls, values):
+        values["userConfirmed"] = bool(
+            values.get("userConfirmed") or values.get("isVerified")
+        )
+        values["verifiedByClinician"] = bool(values.get("verifiedByClinician"))
+        values["verificationStatus"] = (
+            "clinician-verified" if values["verifiedByClinician"]
+            else "user-confirmed" if values["userConfirmed"]
+            else "unreviewed"
+        )
+        confidence = values.get("extractionConfidence")
+        if confidence is not None and not 0 <= confidence <= 1:
+            raise ValueError("extractionConfidence must be between 0 and 1")
+        code = values.get("code", "").lower().strip().replace("-", "_").replace(" ", "_")
+        value = values.get("value")
+        trusted_ranges = {
+            "fbs": (50.0, 400.0), "fasting_glucose": (50.0, 400.0),
+            "fasting_blood_sugar": (50.0, 400.0), "fpg": (50.0, 400.0),
+            "hba1c": (3.0, 18.0), "hb_a1c": (3.0, 18.0), "a1c": (3.0, 18.0),
+        }
+        bounds = trusted_ranges.get(code)
+        values["plausibleRangePassed"] = bool(
+            value is not None and math.isfinite(value) and
+            ((bounds[0] <= value <= bounds[1]) if bounds else value >= 0)
+        )
+        return values
 
 class RegionalContext(BaseModel):
     language: str = "en"
@@ -272,7 +309,7 @@ def _scan_lab_observations(observations: list) -> list[dict]:
     """
     found: list[dict] = []
     for obs in observations:
-        if not obs.isVerified:
+        if not obs.userConfirmed:
             continue
         normalised = obs.code.lower().strip().replace("-", "_").replace(" ", "_")
         match = _LAB_CODE_MAPS.get(normalised)
@@ -288,11 +325,7 @@ def _scan_lab_observations(observations: list) -> list[dict]:
         # silently include.  This check must come before the range comparison
         # below, which would TypeError on None.
         if obs.value is None or not math.isfinite(obs.value):
-            log.warning(
-                "Lab observation excluded — value is null or non-finite: "
-                "code=%r value=%r unit=%r. Result may be pending or corrupted.",
-                obs.code, obs.value, obs.unit,
-            )
+            log.warning("LAB_VALUE_NON_NUMERIC_OR_MISSING")
             continue
 
         # ── Sanity-range check ────────────────────────────────────────────────
@@ -302,12 +335,7 @@ def _scan_lab_observations(observations: list) -> list[dict]:
         if bounds is not None:
             lo, hi = bounds
             if not (lo <= obs.value <= hi):
-                log.warning(
-                    "Lab observation excluded — value out of sanity range: "
-                    "code=%r canonical=%r value=%s unit=%r expected=[%s, %s]. "
-                    "Check for data-entry error or unit mismatch.",
-                    obs.code, canonical, obs.value, obs.unit, lo, hi,
-                )
+                log.warning("LAB_VALUE_OUTSIDE_PLAUSIBLE_RANGE")
                 continue   # excluded, not silently dropped — warning was logged
 
         found.append({
@@ -320,6 +348,12 @@ def _scan_lab_observations(observations: list) -> list[dict]:
             "observedAt": obs.observedAt,
             "isVerified": True,
             "verifiedBy": obs.verifiedBy,
+            "source": obs.source,
+            "plausibleRangePassed": True,
+            "userConfirmed": obs.userConfirmed,
+            "unitConfirmed": obs.unitConfirmed,
+            "verifiedByClinician": obs.verifiedByClinician,
+            "verificationStatus": obs.verificationStatus,
             "note":       _LAB_MODULE_NOTES.get(module, "Detected; usage not yet defined."),
         })
     return found
@@ -375,11 +409,7 @@ def evaluate_diabetes(context: HealthContext):
     # ------------------------------------------------------------------
     lab_evidence = _scan_lab_observations(context.labObservations)
     if lab_evidence:
-        log.info(
-            "Verified lab observations detected for user %s: %s",
-            context.userId,
-            [(e["canonical"], e["value"], e["unit"]) for e in lab_evidence],
-        )
+        log.info("module=diabetes user_confirmed_lab_count=%d", len(lab_evidence))
 
     if _model is not None and _model_installed:
         try:
@@ -419,7 +449,9 @@ def evaluate_diabetes(context: HealthContext):
             # target). Missing or malformed threshold state is rejected before
             # inference and cannot produce an uncontextualized probability.
             screening_signal = (
-                "elevated" if prob >= active_cutoff else "not_elevated"
+                "elevated-screening-signal"
+                if prob >= active_cutoff
+                else "below-screening-threshold"
             )
 
             used    = [k for k, v in feature_row.items() if v == v]   # not NaN
@@ -428,12 +460,11 @@ def evaluate_diabetes(context: HealthContext):
             response: dict = {
                 "moduleId":             "diabetes-screening",
                 "moduleVersion":        _model_metadata.get("training_date", "unassigned"),
-                "status":               "complete",
+                "status":               "completed",
                 "resultType":           "screening-signal",
                 "source":               "research-model",
                 "evidenceSupport":      "research-only",
                 "reasonCodes":          ["RESEARCH_ONLY_MODEL"],
-                "screeningProbability": prob,
                 "screeningSignal":      screening_signal,
                 "usedEvidence":         used,
                 "missingEvidence":      missing,
@@ -454,8 +485,8 @@ def evaluate_diabetes(context: HealthContext):
             }
             return response
 
-        except Exception as exc:
-            log.warning("Inference failed (%s) — returning model-unavailable.", exc)
+        except Exception:
+            log.warning("module=diabetes status=model-unavailable")
 
     # ------------------------------------------------------------------
     # Model-unavailable fallback — identical shape as before, always safe.

@@ -98,7 +98,7 @@ async function writeProgressLog(uid: string, profile: any, analysis: any) {
         latestSnapshot.smoking === profile.smoking &&
         latestSnapshot.overallRisk === analysis.overallRisk
       ) {
-        console.log(`Skipping progress log duplicate for user ${uid}`);
+        console.log("module=progress-log status=duplicate-skipped");
         return;
       }
     }
@@ -116,7 +116,7 @@ async function writeProgressLog(uid: string, profile: any, analysis: any) {
       exercise: profile.exercise,
       createdAt: new Date().toISOString(),
     });
-    console.log(`Successfully logged progress entry for user ${uid}`);
+    console.log("module=progress-log status=saved");
   } catch (err) {
     console.error("Error writing progress log snapshot:", err);
   }
@@ -1535,6 +1535,13 @@ app.post(
 
       let result: any = null;
       const key = process.env.GEMINI_API_KEY;
+      const extractionUnavailable = () => res.status(503).json({
+        status: "extraction-unavailable",
+        reasonCode: "OCR_SERVICE_UNAVAILABLE",
+        biomarkers: {},
+        manualEntryRequired: true,
+        message: "Automatic extraction is unavailable. Enter or review the values manually.",
+      });
 
       if (
         key &&
@@ -1565,6 +1572,8 @@ Return strictly valid JSON matching the requested schema.`;
           parts: [{ text: labPrompt }],
         });
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         const geminiResp = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1626,7 +1635,9 @@ Return strictly valid JSON matching the requested schema.`;
               temperature: 0.1,
             },
           }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
 
         if (geminiResp.ok) {
           const geminiJson: any = await geminiResp.json();
@@ -1637,29 +1648,47 @@ Return strictly valid JSON matching the requested schema.`;
             result = JSON.parse(geminiText);
           }
         } else {
-          const errText = await geminiResp.text();
-          console.warn("Gemini lab report OCR call failed:", errText);
+          console.warn("module=lab-extraction status=upstream-unavailable");
         }
       }
 
-      // If Gemini is not configured, or if the call failed/returned empty, fall back to mock extraction
       if (!result) {
-        console.log("No Gemini API result, returning simulated fallback lab extraction data.");
-        result = {
-          fastingBloodSugar: { value: 110, unit: "mg/dL" },
-          HbA1c: { value: 5.8, unit: "%" },
-          totalCholesterol: { value: 190, unit: "mg/dL" },
-          ldl: { value: 120, unit: "mg/dL" },
-          hdl: { value: 50, unit: "mg/dL" },
-          triglycerides: { value: 150, unit: "mg/dL" },
-          reportDate: new Date().toISOString().split("T")[0]
-        };
+        return extractionUnavailable();
       }
 
-      return res.json(result);
-    } catch (err: any) {
-      console.error("Lab report analyze error:", err);
-      return res.status(500).json({ error: "Internal Server Error: Failed to analyze lab report" });
+      const biomarkerKeys = [
+        "fastingBloodSugar", "HbA1c", "totalCholesterol", "ldl", "hdl", "triglycerides",
+      ];
+      if (typeof result !== "object" || Array.isArray(result)) {
+        return extractionUnavailable();
+      }
+      for (const name of biomarkerKeys) {
+        if (!(name in result)) continue;
+        const biomarker = result[name];
+        if (
+          !biomarker || typeof biomarker !== "object" ||
+          typeof biomarker.value !== "number" || !Number.isFinite(biomarker.value) ||
+          typeof biomarker.unit !== "string" || biomarker.unit.trim() === ""
+        ) {
+          console.warn("module=lab-extraction status=invalid-biomarker-schema");
+          return extractionUnavailable();
+        }
+      }
+      const extractedKeys = biomarkerKeys.filter((name) => name in result);
+      if (extractedKeys.length === 0) return extractionUnavailable();
+      if (result.reportDate !== undefined && typeof result.reportDate !== "string") {
+        return extractionUnavailable();
+      }
+      return res.json({ ...result, status: "extracted" });
+    } catch {
+      console.warn("module=lab-extraction status=extraction-unavailable");
+      return res.status(503).json({
+        status: "extraction-unavailable",
+        reasonCode: "OCR_SERVICE_UNAVAILABLE",
+        biomarkers: {},
+        manualEntryRequired: true,
+        message: "Automatic extraction is unavailable. Enter or review the values manually.",
+      });
     }
   }
 );
