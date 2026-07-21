@@ -369,8 +369,10 @@ function AssessmentPage() {
       case "EXTERNAL_PROCESSING_CONSENT_REQUIRED":
         return "Consent is required before external AI processing.";
       case "LAB_EXTRACTION_API_KEY_MISSING":
+      case "LAB_EXTRACTION_CREDENTIALS_MISSING":
         return "AI extraction service is not configured. You can enter your laboratory values manually.";
       case "LAB_FILE_TYPE_UNSUPPORTED":
+      case "LAB_FILE_UNSUPPORTED":
       case "LAB_UPLOAD_UNSUPPORTED_MIME_TYPE":
         return "This file type is not supported. Upload a PDF, PNG, or JPEG.";
       case "LAB_FILE_TOO_LARGE":
@@ -386,6 +388,7 @@ function AssessmentPage() {
         return "No lab values could be extracted from this report. You can enter values manually.";
       case "LAB_EXTRACTION_PARSE_FAILED":
         return "Failed to read lab report structure. You can enter your laboratory values manually.";
+      case "LAB_EXTRACTION_UNAVAILABLE":
       case "LAB_EXTRACTION_PROVIDER_REJECTED":
       default:
         return "AI extraction is currently unavailable. You can enter your laboratory values manually.";
