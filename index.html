@@ -1,51 +1,48 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HealthGuard AI — Personalized Preventive-Health Assessment</title>
-    <meta
-      name="description"
-      content="AI-powered preventive health platform. Get application-generated lifestyle screening indices, diet, fitness, and prevention plans based on selected evidence-based wellness guidelines."
-    />
-    <meta property="og:title" content="HealthGuard AI" />
-    <meta
-      property="og:description"
-      content="AI-powered lifestyle screening indices and personalized health plans."
-    />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <script>
-      (function() {
-        try {
-          var s = localStorage.getItem('hg.theme.v1');
-          var dark = s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          if (dark) document.documentElement.classList.add('dark');
-          var l = localStorage.getItem('hg.lang.v1');
-          if (l) {
-            try {
-              var parsed = JSON.parse(l);
-              if (parsed === 'hi' || parsed === 'gu' || parsed === 'en') {
-                document.documentElement.lang = parsed;
-              }
-            } catch (e) {
-              if (l === 'hi' || l === 'gu' || l === 'en') {
-                document.documentElement.lang = l;
-              }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HealthGuard — Evidence-Aware Preventive Health Intelligence</title>
+  <meta name="description"
+    content="Evidence-aware preventive health intelligence. Get application-generated lifestyle screening indices, diet, fitness, and prevention plans based on selected evidence-based wellness guidelines." />
+  <meta property="og:title" content="HealthGuard AI" />
+  <meta property="og:description" content="AI-powered lifestyle screening indices and personalized health plans." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <script>
+    (function () {
+      try {
+        var s = localStorage.getItem('hg.theme.v1');
+        var dark = s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+        var l = localStorage.getItem('hg.lang.v1');
+        if (l) {
+          try {
+            var parsed = JSON.parse(l);
+            if (parsed === 'hi' || parsed === 'gu' || parsed === 'en') {
+              document.documentElement.lang = parsed;
+            }
+          } catch (e) {
+            if (l === 'hi' || l === 'gu' || l === 'en') {
+              document.documentElement.lang = l;
             }
           }
-        } catch (e) {}
-      })();
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+        }
+      } catch (e) { }
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
