@@ -24,6 +24,7 @@ import { generatePersonalizedPlans } from "@/lib/personalization-engine";
 import { generateHealthPriorities, type HealthPriority } from "@/lib/priority-engine";
 import { generateDietPlan } from "@/lib/diet-engine";
 import { generateWorkoutPlan } from "@/lib/workout-engine";
+import { generateExplainedRecommendations } from "@/lib/recommendation-explanation-engine";
 
 export const Route = createFileRoute("/_app/action-plan")({
   component: ActionPlanPage,
@@ -195,36 +196,42 @@ function ActionPlanPage() {
                 diabetesRiskCategory: result?.risk?.diabetes ? (result.risk.diabetes > 50 ? "high" : result.risk.diabetes > 25 ? "moderate" : "low") : undefined,
                 hypertensionRiskCategory: result?.risk?.hypertension ? (result.risk.hypertension > 50 ? "high" : result.risk.hypertension > 25 ? "moderate" : "low") : undefined,
               };
-              const priorities = generateHealthPriorities(engineInput);
-              if (priorities.length === 0) return null;
+              const top3Explained = generateExplainedRecommendations(engineInput);
+              if (top3Explained.length === 0) return null;
 
               return (
                 <div className="grid gap-3 sm:grid-cols-3">
-                  {priorities.slice(0, 3).map((p, i) => (
+                  {top3Explained.map((rec, i) => (
                     <div
-                      key={p.id}
-                      className="flex flex-col justify-between gap-2.5 rounded-xl border border-border bg-surface-muted/50 p-4"
+                      key={rec.id}
+                      className="flex flex-col justify-between gap-3 rounded-xl border border-border bg-surface-muted/50 p-4"
                     >
-                      <div className="flex items-start gap-3">
-                        <span className="font-display text-lg font-black text-teal shrink-0">
-                          {i + 1}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-foreground leading-snug">{p.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1 leading-normal">{p.reason}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/20">
-                        <Badge variant="outline" className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 ${
-                          p.severity === "high" ? "bg-rose-500/10 text-rose-600 border-rose-500/20" : "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                        }`}>
-                          {p.severity} severity
-                        </Badge>
-                        {p.evidence.length > 0 && (
-                          <Badge variant="secondary" className="text-[10px] font-mono px-2 py-0.5">
-                            {p.evidence[0]}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-display text-lg font-black text-teal">
+                            #{i + 1}
+                          </span>
+                          <Badge variant="outline" className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 ${
+                            rec.timeline === "Today" ? "bg-rose-500/10 text-rose-600 border-rose-500/20" : rec.timeline === "This Week" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-teal/10 text-teal border-teal/20"
+                          }`}>
+                            {rec.timeline}
                           </Badge>
+                        </div>
+                        <p className="text-sm font-bold text-foreground leading-snug">{rec.action}</p>
+                        <p className="text-xs text-muted-foreground leading-normal">
+                          <span className="font-semibold text-foreground">Why: </span>{rec.why}
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5 pt-2 border-t border-border/30">
+                        {rec.evidence.length > 0 && (
+                          <div className="text-[11px] text-muted-foreground">
+                            <span className="font-semibold text-foreground">Evidence: </span>{rec.evidence.join(" ")}
+                          </div>
                         )}
+                        <div className="text-[10px] text-teal font-medium leading-normal">
+                          <span className="font-semibold">Benefit: </span>{rec.expectedBenefit}
+                        </div>
                       </div>
                     </div>
                   ))}
