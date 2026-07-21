@@ -22,6 +22,7 @@ import SplitText from "@/components/ui/split-text";
 import { ShapeGrid } from "@/components/ui/shape-grid";
 import { generatePersonalizedPlans } from "@/lib/personalization-engine";
 import { generateHealthPriorities, type HealthPriority } from "@/lib/priority-engine";
+import { generateDietPlan } from "@/lib/diet-engine";
 
 export const Route = createFileRoute("/_app/action-plan")({
   component: ActionPlanPage,
@@ -267,6 +268,28 @@ function ActionPlanPage() {
                 {tr("mealPlannerDesc", currentLang).replace("{bmi}", bmiVal)}
               </p>
             </div>
+
+            {(() => {
+              const engineInput = {
+                ...(profile || {}),
+                priorities: generateHealthPriorities(profile || {}),
+                diabetesRiskCategory: result?.risk?.diabetes ? (result.risk.diabetes > 50 ? "high" : result.risk.diabetes > 25 ? "moderate" : "low") : undefined,
+                hypertensionRiskCategory: result?.risk?.hypertension ? (result.risk.hypertension > 50 ? "high" : result.risk.hypertension > 25 ? "moderate" : "low") : undefined,
+              };
+              const dietPlanOutput = generateDietPlan(engineInput);
+              return (
+                <div className="bg-surface-muted/40 rounded-xl border border-border/60 p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="bg-teal/20 text-teal hover:bg-teal/30 font-semibold">
+                      Strategy: {dietPlanOutput.strategy}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {dietPlanOutput.strategyReason}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
 
           <Tabs defaultValue="breakfast" className="w-full">
@@ -299,34 +322,42 @@ function ActionPlanPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7 pt-4">
-                      {weekdays.map((day, i) => {
-                        const meal = personalized?.dietPlan[day]?.[k];
-                        return (
-                          <div
-                            key={i}
-                            className="rounded-xl border border-border bg-surface-muted/65 p-3.5 flex flex-col justify-between"
-                          >
-                            <div>
-                              <div className="text-[11px] font-bold uppercase tracking-wider text-teal font-mono">
-                                {tr(day, currentLang)}
-                              </div>
-                              <div className="mt-1 text-xs font-semibold leading-relaxed text-foreground">
-                                {meal?.name || "Healthy Choice"}
-                              </div>
-                            </div>
-                            {meal && (
-                              <div className="mt-3 border-t border-border/40 pt-2 text-[10px] text-muted-foreground leading-snug">
-                                <div>{meal.calories} kcal</div>
-                                <div className="flex gap-1 mt-0.5 font-mono text-[9px]">
-                                  <span>P: {meal.protein}g</span>
-                                  <span>C: {meal.carbs}g</span>
-                                  <span>F: {meal.fat}g</span>
+                        {(() => {
+                          const engineInput = {
+                            ...(profile || {}),
+                            priorities: generateHealthPriorities(profile || {}),
+                            diabetesRiskCategory: result?.risk?.diabetes ? (result.risk.diabetes > 50 ? "high" : result.risk.diabetes > 25 ? "moderate" : "low") : undefined,
+                            hypertensionRiskCategory: result?.risk?.hypertension ? (result.risk.hypertension > 50 ? "high" : result.risk.hypertension > 25 ? "moderate" : "low") : undefined,
+                          };
+                          const dietPlanOutput = generateDietPlan(engineInput);
+                          const courseKey = k === "breakfast" ? "breakfast" : k === "lunch" ? "lunch" : k === "snacks" ? "snacks" : "dinner";
+                          const rec = dietPlanOutput.meals[courseKey];
+
+                          return weekdays.map((day, i) => {
+                            const meal = personalized?.dietPlan[day]?.[k];
+                            return (
+                              <div
+                                key={i}
+                                className="rounded-xl border border-border bg-surface-muted/65 p-3.5 flex flex-col justify-between"
+                              >
+                                <div>
+                                  <div className="text-[11px] font-bold uppercase tracking-wider text-teal font-mono">
+                                    {tr(day, currentLang)}
+                                  </div>
+                                  <div className="mt-1 text-xs font-semibold leading-relaxed text-foreground">
+                                    {rec.meal || meal?.name || "Healthy Choice"}
+                                  </div>
+                                  <div className="mt-1 text-[11px] text-muted-foreground leading-normal italic">
+                                    {rec.reason}
+                                  </div>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-border/30 text-[10px] text-teal font-medium">
+                                  {rec.expectedBenefit}
                                 </div>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                            );
+                          });
+                        })()}
                     </CardContent>
                   </Card>
                 </TabsContent>
