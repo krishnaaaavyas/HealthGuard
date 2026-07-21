@@ -105,3 +105,4 @@ evaluation-output/
 # Local path configuration
 .env.local
 .env.research
+backend/.env
