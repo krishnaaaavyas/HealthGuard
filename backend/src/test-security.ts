@@ -374,11 +374,11 @@ async function testSecurity() {
     }
   });
 
-  await runTest("Lab extraction - Unsupported MIME type returns LAB_FILE_TYPE_UNSUPPORTED", async () => {
+  await runTest("Lab extraction - Unsupported MIME type returns LAB_FILE_UNSUPPORTED", async () => {
     const res = await labRequest("plain text data", "text/plain");
     const body: any = await res.json();
-    if (res.status !== 400 || body.reasonCode !== "LAB_FILE_TYPE_UNSUPPORTED") {
-      throw new Error(`Expected 400 LAB_FILE_TYPE_UNSUPPORTED, got ${res.status} ${body.reasonCode}`);
+    if (res.status !== 400 || body.reasonCode !== "LAB_FILE_UNSUPPORTED") {
+      throw new Error(`Expected 400 LAB_FILE_UNSUPPORTED, got ${res.status} ${body.reasonCode}`);
     }
   });
 
@@ -415,14 +415,14 @@ async function testSecurity() {
     }
   });
 
-  await runTest("Lab extraction - Missing Gemini API key returns LAB_EXTRACTION_API_KEY_MISSING", async () => {
+  await runTest("Lab extraction - Missing Gemini API key returns LAB_EXTRACTION_CREDENTIALS_MISSING", async () => {
     const previous = process.env.GEMINI_API_KEY;
     delete process.env.GEMINI_API_KEY;
     try {
       const res = await labRequest();
       const body: any = await res.json();
-      if (res.status !== 503 || body.reasonCode !== "LAB_EXTRACTION_API_KEY_MISSING") {
-        throw new Error(`Expected 503 LAB_EXTRACTION_API_KEY_MISSING, got ${res.status} ${body.reasonCode}`);
+      if (res.status !== 503 || body.reasonCode !== "LAB_EXTRACTION_CREDENTIALS_MISSING") {
+        throw new Error(`Expected 503 LAB_EXTRACTION_CREDENTIALS_MISSING, got ${res.status} ${body.reasonCode}`);
       }
       if (body.manualEntryAllowed !== true || (body.observations && body.observations.length > 0)) {
         throw new Error("Fabricated observations returned on missing API key");
@@ -466,18 +466,41 @@ async function testSecurity() {
     }
   });
 
-  await runTest("Lab extraction - Provider HTTP 500 returns LAB_EXTRACTION_PROVIDER_REJECTED", async () => {
+  await runTest("Lab extraction - Provider HTTP 500 returns LAB_EXTRACTION_UNAVAILABLE", async () => {
     const originalFetch = global.fetch;
     process.env.GEMINI_API_KEY = "synthetic-test-key";
     global.fetch = async () => new Response("Internal error", { status: 500 });
     try {
       const res = await labRequest();
       const body: any = await res.json();
-      if (res.status !== 503 || body.reasonCode !== "LAB_EXTRACTION_PROVIDER_REJECTED") {
-        throw new Error(`Expected 503 LAB_EXTRACTION_PROVIDER_REJECTED, got ${res.status} ${body.reasonCode}`);
+      if (res.status !== 503 || body.reasonCode !== "LAB_EXTRACTION_UNAVAILABLE") {
+        throw new Error(`Expected 503 LAB_EXTRACTION_UNAVAILABLE, got ${res.status} ${body.reasonCode}`);
       }
     } finally {
       global.fetch = originalFetch;
+    }
+  });
+
+  await runTest("Observability - GET /health returns HTTP 200 process status", async () => {
+    const res = await httpFetch(`${baseUrl}/../health`);
+    const body: any = await res.json();
+    if (res.status !== 200 || body.status !== "ok") {
+      throw new Error(`Expected process health OK, got ${res.status} ${JSON.stringify(body)}`);
+    }
+  });
+
+  await runTest("Observability - GET /ready probe returns 503 when dependencies missing in production mode", async () => {
+    const prevEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      const res = await httpFetch(`${baseUrl}/../ready`);
+      const body: any = await res.json();
+      if (res.status !== 503 || body.ready !== false) {
+        throw new Error(`Expected 503 unready in production with mock storage, got ${res.status} ${JSON.stringify(body)}`);
+      }
+    } finally {
+      if (prevEnv !== undefined) process.env.NODE_ENV = prevEnv;
+      else delete process.env.NODE_ENV;
     }
   });
 

@@ -10,6 +10,7 @@ import {
 } from "../config/schemas-v2.js";
 import { isBackendFeatureEnabled } from "../config/feature-flags.js";
 import { evaluateHealthContext } from "../modules/assessment/assessment-v2.service.js";
+import { getSystemReadiness } from "../services/startupValidation.js";
 
 const router = Router();
 
@@ -38,10 +39,14 @@ router.get("/health", (_req, res) => {
 
 // GET /api/v2/ready
 router.get("/ready", (_req, res) => {
-  return res.json({
-    status: "ok",
+  const readiness = getSystemReadiness();
+  return res.status(readiness.statusCode).json({
+    status: readiness.ready ? "ok" : "not_ready",
     version: "2.0.0",
     enabled: isV2Enabled(),
+    ready: readiness.ready,
+    checks: readiness.checks,
+    timestamp: readiness.timestamp,
   });
 });
 

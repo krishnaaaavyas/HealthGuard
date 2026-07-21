@@ -18,8 +18,10 @@ import v2Routes from "./routes/v2.routes.js";
 import { securityMiddleware } from "./middleware/security.js";
 import { validateLabUpload } from "./services/labUploadValidation.service.js";
 import { evaluateLegacyShadow } from "./modules/assessment/health-engine-v2-shadow.service.js";
+import { validateProductionConfig, getSystemReadiness } from "./services/startupValidation.js";
 
 dotenv.config();
+validateProductionConfig();
 
 export const app = express();
 const PORT = process.env.PORT || 5000;
@@ -136,9 +138,15 @@ async function writeProgressLog(uid: string, profile: any, analysis: any) {
   }
 }
 
-// GET /health - basic health check
-app.get("/health", (req, res) => {
-  res.json({ status: "OK", version: "1.0.0", timestamp: new Date().toISOString() });
+// GET /health - basic process health check
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", version: "1.0.0", timestamp: new Date().toISOString() });
+});
+
+// GET /ready - system readiness probe
+app.get("/ready", (_req, res) => {
+  const readiness = getSystemReadiness();
+  return res.status(readiness.statusCode).json(readiness);
 });
 
 // GET /api/user/status - check assessment status
@@ -1612,7 +1620,7 @@ app.post(
           msg === "LAB_UPLOAD_UNSUPPORTED_MIME_TYPE" ||
           msg === "LAB_UPLOAD_MIME_SIGNATURE_MISMATCH"
         ) {
-          return extractionUnavailable("LAB_FILE_TYPE_UNSUPPORTED", 400);
+          return extractionUnavailable("LAB_FILE_UNSUPPORTED", 400);
         }
         if (
           msg === "LAB_UPLOAD_SIZE_LIMIT_EXCEEDED" ||
@@ -1630,7 +1638,7 @@ app.post(
         key.includes("placeholder") ||
         key.trim() === ""
       ) {
-        return extractionUnavailable("LAB_EXTRACTION_API_KEY_MISSING", 503);
+        return extractionUnavailable("LAB_EXTRACTION_CREDENTIALS_MISSING", 503);
       }
 
       const model = "gemini-2.5-flash";
@@ -1728,11 +1736,11 @@ Return strictly valid JSON matching the requested schema.`;
         if (fetchErr?.name === "AbortError" || String(fetchErr?.message).includes("aborted")) {
           return extractionUnavailable("LAB_EXTRACTION_TIMEOUT", 503);
         }
-        return extractionUnavailable("LAB_EXTRACTION_PROVIDER_REJECTED", 503);
+        return extractionUnavailable("LAB_EXTRACTION_UNAVAILABLE", 503);
       }
 
       if (!geminiResp.ok) {
-        return extractionUnavailable("LAB_EXTRACTION_PROVIDER_REJECTED", 503);
+        return extractionUnavailable("LAB_EXTRACTION_UNAVAILABLE", 503);
       }
 
       let result: any = null;
@@ -1797,7 +1805,7 @@ Return strictly valid JSON matching the requested schema.`;
 
       return res.json({ ...result, status: "extracted" });
     } catch {
-      return extractionUnavailable("LAB_EXTRACTION_PROVIDER_REJECTED", 503);
+      return extractionUnavailable("LAB_EXTRACTION_UNAVAILABLE", 503);
     }
   }
 );
