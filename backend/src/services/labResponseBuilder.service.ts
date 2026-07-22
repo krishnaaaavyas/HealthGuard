@@ -1,16 +1,30 @@
 import { Response } from "express";
 import { ParsedLabResult } from "./labParser.service.js";
 
-export interface LabExtractionUnavailableResponse {
-  status: "extraction-unavailable";
+export interface LabDegradationResponse {
+  status: "manual-entry-required" | "extraction-unavailable";
   reasonCode: string;
-  observations: any[];
   manualEntryAllowed: true;
+  missingBiomarkers: string[];
+  confidence: number;
+  observations: any[];
 }
 
 export class LabResponseBuilder {
+  public static readonly ALL_BIOMARKER_KEYS = [
+    "fastingBloodSugar",
+    "HbA1c",
+    "totalCholesterol",
+    "ldl",
+    "hdl",
+    "triglycerides",
+    "bloodPressure",
+    "weight",
+    "height",
+  ];
+
   /**
-   * Format and return structured extraction-unavailable response.
+   * Format and return structured degradation response (manual entry fallback) when Gemini extraction fails or is disabled.
    */
   public static buildUnavailable(
     res: Response,
@@ -20,6 +34,7 @@ export class LabResponseBuilder {
     mimeType: string,
     fileSizeBucket: string,
     durationMs: number,
+    extractedBiomarkerKeys: string[] = []
   ): Response {
     console.log(
       JSON.stringify({
@@ -27,15 +42,22 @@ export class LabResponseBuilder {
         mimeType,
         fileSizeBucket,
         reasonCode,
+        status: "manual-entry-required",
         durationMs,
       })
     );
 
-    const payload: LabExtractionUnavailableResponse = {
-      status: "extraction-unavailable",
+    const missingBiomarkers = this.ALL_BIOMARKER_KEYS.filter(
+      (key) => !extractedBiomarkerKeys.includes(key)
+    );
+
+    const payload: LabDegradationResponse = {
+      status: "manual-entry-required",
       reasonCode,
-      observations: [],
       manualEntryAllowed: true,
+      missingBiomarkers,
+      confidence: 0,
+      observations: [],
     };
 
     return res.status(statusCode).json(payload);
@@ -65,6 +87,8 @@ export class LabResponseBuilder {
     return res.json({
       ...result,
       status: "extracted",
+      manualEntryAllowed: true,
+      confidence: 0.95,
     });
   }
 }

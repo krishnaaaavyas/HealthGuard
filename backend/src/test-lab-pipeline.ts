@@ -127,10 +127,13 @@ async function runTests() {
     },
   };
 
-  LabResponseBuilder.buildUnavailable(mockRes, "LAB_FILE_UNSUPPORTED", 400, "req-1", "image/png", "<100KB", 10);
-  assert(lastStatus === 400, "LabResponseBuilder.buildUnavailable sets HTTP 400");
-  assert(lastJson.reasonCode === "LAB_FILE_UNSUPPORTED", "LabResponseBuilder.buildUnavailable returns reasonCode 'LAB_FILE_UNSUPPORTED'");
-  assert(lastJson.status === "extraction-unavailable", "Status is 'extraction-unavailable'");
+  LabResponseBuilder.buildUnavailable(mockRes, "LAB_EXTRACTION_TIMEOUT", 503, "req-1", "image/png", "<100KB", 10);
+  assert(lastStatus === 503, "LabResponseBuilder.buildUnavailable sets HTTP 503");
+  assert(lastJson.reasonCode === "LAB_EXTRACTION_TIMEOUT", "LabResponseBuilder.buildUnavailable returns reasonCode 'LAB_EXTRACTION_TIMEOUT'");
+  assert(lastJson.status === "manual-entry-required", "Status is 'manual-entry-required'");
+  assert(lastJson.manualEntryAllowed === true, "manualEntryAllowed is true");
+  assert(Array.isArray(lastJson.missingBiomarkers) && lastJson.missingBiomarkers.length === 9, "missingBiomarkers includes 9 missing items");
+  assert(lastJson.confidence === 0, "confidence is 0");
 
   LabResponseBuilder.buildSuccess(mockRes, normalized, "req-2", "image/png", "<100KB", 15);
   assert(lastJson.status === "extracted", "LabResponseBuilder.buildSuccess sets status 'extracted'");
