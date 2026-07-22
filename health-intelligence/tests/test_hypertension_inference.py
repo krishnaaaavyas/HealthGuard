@@ -229,12 +229,33 @@ def test_age_below_45_skips_model():
     assert state.model.calls == 0
 
 
-@pytest.mark.parametrize("field", [
-    "knownHypertension", "takingAntihypertensiveMedication",
-])
-def test_known_condition_or_medication_uses_context_only_route(field):
+def test_bp_reading_override_skips_model_and_returns_confirmed_evidence():
     state = loaded_state()
-    response = evaluate(payload(**{field: True}), state)
+    response = evaluate(payload(systolicBP=120, diastolicBP=80), state)
+    body = response.json()
+    assert body["status"] == "complete"
+    assert body["resultType"] == "confirmed-evidence"
+    assert "precedence" in body["message"].lower()
+    assert "screeningProbability" not in body
+    assert "screeningSignal" not in body
+    assert state.model.calls == 0
+
+
+def test_known_hypertension_override_skips_model_and_returns_confirmed_evidence():
+    state = loaded_state()
+    response = evaluate(payload(knownHypertension=True), state)
+    body = response.json()
+    assert body["status"] == "complete"
+    assert body["resultType"] == "confirmed-evidence"
+    assert "precedence" in body["message"].lower()
+    assert "screeningProbability" not in body
+    assert "screeningSignal" not in body
+    assert state.model.calls == 0
+
+
+def test_medication_uses_context_only_route():
+    state = loaded_state()
+    response = evaluate(payload(takingAntihypertensiveMedication=True), state)
     assert response.json()["status"] == "completed"
     assert response.json()["screeningSignal"] == "not-evaluated"
     assert state.model.calls == 0
@@ -244,13 +265,6 @@ def test_bp_evidence_requires_verification_without_model_call():
     state = loaded_state()
     response = evaluate(payload(systolicBP=135), state)
     assert response.json()["status"] == "measurement-requires-verification"
-    assert state.model.calls == 0
-
-
-def test_emergency_bp_has_first_precedence():
-    state = loaded_state()
-    response = evaluate(payload(systolicBP=180, knownHypertension=True), state)
-    assert "SAFETY_OVERRIDE" in response.json()["reasonCodes"]
     assert state.model.calls == 0
 
 

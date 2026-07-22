@@ -31,24 +31,26 @@ LIMITATIONS = [
 
 def _response(
     status: str,
-    screening_signal: str,
+    screening_signal: str | None,
     reason_codes: list[str],
     missing_inputs: list[str],
     recommended_actions: list[str],
     model_version: str = MODEL_VERSION,
     message: str | None = None,
+    result_type: str = "screening-awareness",
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "moduleId": "hypertension-screening-awareness",
-        "resultType": "screening-awareness",
+        "resultType": result_type,
         "status": status,
-        "screeningSignal": screening_signal,
         "reasonCodes": reason_codes,
         "missingInputs": missing_inputs,
         "recommendedActions": recommended_actions,
         "limitations": LIMITATIONS,
         "modelVersion": model_version,
     }
+    if screening_signal is not None:
+        payload["screeningSignal"] = screening_signal
     if message is not None:
         payload["message"] = message
     return payload
@@ -119,6 +121,23 @@ def build_feature_row(context: HealthContext) -> tuple[dict[str, Any] | None, li
 
 def evaluate_hypertension(context: HealthContext, model_state: ModelState) -> dict[str, Any]:
     assessment = context.assessment
+
+    has_bp_reading = (
+        assessment.systolicBP is not None
+        and assessment.diastolicBP is not None
+    )
+    has_known_hypertension = assessment.knownHypertension is True
+
+    if has_bp_reading or has_known_hypertension:
+        return _response(
+            status="complete",
+            screening_signal=None,
+            reason_codes=["REAL_MEASUREMENT_OR_KNOWN_DIAGNOSIS_PRECEDENCE"],
+            missing_inputs=[],
+            recommended_actions=["FOLLOW_CLINICIAN_DIRECTED_MANAGEMENT"],
+            message="Real blood pressure measurement or known diagnosis takes precedence over any predicted signal.",
+            result_type="confirmed-evidence",
+        )
 
     if _is_emergency_bp(assessment.systolicBP, assessment.diastolicBP) or assessment.urgentSymptoms is True:
         return _response(

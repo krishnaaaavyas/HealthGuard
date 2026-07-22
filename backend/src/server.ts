@@ -356,24 +356,24 @@ app.get("/api/dashboard/bootstrap", requireAuth, async (req: AuthenticatedReques
       success: true,
       profile: profileData
         ? {
-            age: profileData.age,
-            gender: profileData.gender,
-            heightCm: profileData.heightCm || profileData.height,
-            weightKg: profileData.weightKg || profileData.weight,
-            smoking: profileData.smoking,
-            exercise: profileData.exercise || profileData.exerciseLevel,
-            familyHistory: profileData.familyHistory,
-            symptoms: profileData.symptoms,
-            alcohol: profileData.alcohol || undefined,
-            diseases: profileData.diseases || undefined,
-            language: profileData.language || "en",
-          }
+          age: profileData.age,
+          gender: profileData.gender,
+          heightCm: profileData.heightCm || profileData.height,
+          weightKg: profileData.weightKg || profileData.weight,
+          smoking: profileData.smoking,
+          exercise: profileData.exercise || profileData.exerciseLevel,
+          familyHistory: profileData.familyHistory,
+          symptoms: profileData.symptoms,
+          alcohol: profileData.alcohol || undefined,
+          diseases: profileData.diseases || undefined,
+          language: profileData.language || "en",
+        }
         : null,
       result: profileData?.result
         ? (() => {
-            const { mlRisk: _ignored, ...filtered } = profileData.result;
-            return filtered;
-          })()
+          const { mlRisk: _ignored, ...filtered } = profileData.result;
+          return filtered;
+        })()
         : null,
       history: historyList,
       userStatus: userStatusObj,
@@ -456,9 +456,9 @@ app.get("/api/profile", requireAuth, async (req: AuthenticatedRequest, res) => {
         },
         result: data.result
           ? (() => {
-              const { mlRisk: _ignored, ...filtered } = data.result;
-              return filtered;
-            })()
+            const { mlRisk: _ignored, ...filtered } = data.result;
+            return filtered;
+          })()
           : null,
         history: historyList,
       });
@@ -1297,6 +1297,7 @@ app.post(
       let result: any = null;
       const key = process.env.GEMINI_API_KEY;
 
+      let extractedIngredients: string[] = [];
       if (requestMode === "image") {
         console.log(`[FoodScanner] Image extraction request received for user ${uid}`);
 
@@ -1564,7 +1565,7 @@ Provide:
         }
 
         // Ingredient Extraction Quality Validation
-        const extractedIngredients: string[] =
+        extractedIngredients =
           result?.ingredients && Array.isArray(result.ingredients) && result.ingredients.length > 0
             ? result.ingredients
             : FoodImpactService.parseIngredientsFromRawText(result?.rawText || "");
@@ -1580,6 +1581,14 @@ Provide:
             message: "No ingredient list detected in this image. Please upload a clear photo of the ingredient label or enter ingredients manually.",
           });
         }
+      }
+
+      if (requestMode === "text") {
+        extractedIngredients =
+          ingredients ??
+          FoodImpactService.parseIngredientsFromRawText(
+            rawText ?? ""
+          );
       }
 
       const foodName = result?.name || productName || (rawText ? "Custom ingredient list" : "Unknown Product");
@@ -1661,7 +1670,7 @@ CRITICAL SAFETY RULES:
         source: requestMode === "image" ? "Uploaded image" : "Manual text",
         ingredients: extractedIngredients,
         goodIngredients: result?.goodIngredients || [],
-        watchOut: extractedIngredients.filter((ing) => {
+        watchOut: extractedIngredients.filter((ing: string) => {
           const lower = ing.toLowerCase();
           return lower.includes("sugar") || lower.includes("salt") || lower.includes("sodium") || lower.includes("palm") || lower.includes("msg");
         }),
