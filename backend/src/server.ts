@@ -20,6 +20,12 @@ import { validateLabUpload } from "./services/labUploadValidation.service.js";
 import { evaluateLegacyShadow } from "./modules/assessment/health-engine-v2-shadow.service.js";
 import { validateProductionConfig, getSystemReadiness } from "./services/startupValidation.js";
 import { EvidenceBuilder } from "./services/evidenceBuilder.service.js";
+import { LabUploadValidator, LabPipelineError } from "./services/labUploadValidator.service.js";
+import { GeminiOCRService } from "./services/geminiOCRService.service.js";
+import { LabParser } from "./services/labParser.service.js";
+import { UnitNormalizer } from "./services/unitNormalizer.service.js";
+import { LabEvidenceBuilder } from "./services/labEvidenceBuilder.service.js";
+import { LabResponseBuilder } from "./services/labResponseBuilder.service.js";
 
 import sharp from "sharp";
 
@@ -1728,376 +1734,48 @@ app.post(
     let safeMimeType = "unknown";
     let fileSizeBucket = "unknown";
 
-    const getFileSizeBucket = (bytes: number): string => {
-      if (bytes < 100 * 1024) return "<100KB";
-      if (bytes < 1024 * 1024) return "100KB-1MB";
-      if (bytes < 5 * 1024 * 1024) return "1MB-5MB";
-      if (bytes < 10 * 1024 * 1024) return "5MB-10MB";
-      return ">10MB";
-    };
-
-    const extractionUnavailable = (reasonCode: string, statusCode = 503) => {
-      const durationMs = Date.now() - startTime;
-      console.log(
-        JSON.stringify({
-          requestId,
-          mimeType: safeMimeType,
-          fileSizeBucket,
-          reasonCode,
-          durationMs,
-        })
-      );
-      return res.status(statusCode).json({
-        status: "extraction-unavailable",
-        reasonCode,
-        observations: [],
-        manualEntryAllowed: true,
-      });
-    };
-
     try {
-      const { contents } = req.body;
-      if (!contents || !Array.isArray(contents) || contents.length === 0) {
-        return extractionUnavailable("LAB_FILE_INVALID", 400);
-      }
+      // Step 1: Validate upload payload, MIME, size, consent & binary signature
+      const valResult = await LabUploadValidator.validate(req.body);
+      safeMimeType = valResult.safeMimeType;
+      fileSizeBucket = valResult.fileSizeBucket;
 
-      const inlinePart = contents.flatMap((entry: any) =>
-        Array.isArray(entry?.parts) ? entry.parts.filter((p: any) => p?.inlineData) : []
-      )[0];
-      if (inlinePart?.inlineData?.mimeType) {
-        safeMimeType = String(inlinePart.inlineData.mimeType);
-      }
-      if (inlinePart?.inlineData?.data && typeof inlinePart.inlineData.data === "string") {
-        fileSizeBucket = getFileSizeBucket(Math.floor((inlinePart.inlineData.data.length * 3) / 4));
-      }
+      // Step 2: Execute OCR via Gemini Vision API
+      const rawOcrText = await GeminiOCRService.executeOCR(req.body.contents);
 
-      const processingEnabled = process.env.GEMINI_LAB_PROCESSING_ENABLED !== "false";
-      if (!processingEnabled) {
-        return extractionUnavailable("LAB_EXTRACTION_DISABLED", 503);
-      }
+      // Step 3: Parse raw OCR text into structured JSON lab result
+      const parsedResult = LabParser.parse(rawOcrText);
 
-      const consentRequired = process.env.REQUIRE_EXTERNAL_PROCESSING_CONSENT
-        ? process.env.REQUIRE_EXTERNAL_PROCESSING_CONSENT === "true"
-        : process.env.NODE_ENV === "production";
-      if (consentRequired && req.body.externalProcessingConsent !== true) {
-        return extractionUnavailable("LAB_EXTRACTION_CONSENT_REQUIRED", 422);
-      }
+      // Step 4: Normalize biomarker units to standard clinical units
+      const normalizedResult = UnitNormalizer.normalize(parsedResult);
 
-      try {
-        await validateLabUpload(contents);
-      } catch (validationError: any) {
-        const msg = String(validationError?.message || "");
-        if (
-          msg === "LAB_UPLOAD_UNSUPPORTED_MIME_TYPE" ||
-          msg === "LAB_UPLOAD_MIME_SIGNATURE_MISMATCH" ||
-          msg === "LAB_UPLOAD_HEIC_UNSUPPORTED"
-        ) {
-          return extractionUnavailable("LAB_FILE_UNSUPPORTED", 400);
-        }
-        if (msg === "LAB_UPLOAD_EMPTY_FILE") {
-          return extractionUnavailable("LAB_FILE_EMPTY", 400);
-        }
-        if (msg === "LAB_UPLOAD_SIZE_LIMIT_EXCEEDED") {
-          return extractionUnavailable("LAB_FILE_TOO_LARGE", 400);
-        }
-        if (msg === "LAB_UPLOAD_DIMENSIONS_EXCEEDED") {
-          return extractionUnavailable("LAB_IMAGE_DIMENSIONS_EXCEEDED", 400);
-        }
-        if (msg === "LAB_UPLOAD_PDF_UNREADABLE") {
-          return extractionUnavailable("LAB_PDF_UNREADABLE", 400);
-        }
-        return extractionUnavailable("LAB_FILE_INVALID", 400);
-      }
+      // Step 5: Build Evidence observations for clinical evaluation engine
+      LabEvidenceBuilder.buildObservations(normalizedResult);
 
-      const key = process.env.GEMINI_API_KEY;
-      if (
-        !key ||
-        key === "YOUR_GEMINI_API_KEY" ||
-        key.includes("placeholder") ||
-        key.trim() === ""
-      ) {
-        return extractionUnavailable("LAB_EXTRACTION_CREDENTIALS_MISSING", 503);
-      }
-
-      const model = "gemini-2.5-flash";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
-
-      const labPrompt = `You are a clinical laboratory data extraction system. Analyze the provided lab report image or document.
-Extract the following biomarkers if present, including their numeric value and unit. Do not guess values.
-Biomarkers to look for:
-1. fastingBloodSugar (fasting blood glucose, FBS)
-2. HbA1c (Glycated hemoglobin, A1c)
-3. totalCholesterol
-4. ldl (LDL Cholesterol)
-5. hdl (HDL Cholesterol)
-6. triglycerides
-7. bloodPressure (systolic and diastolic in mmHg)
-8. weight (body weight)
-9. height (body height)
-
-Also extract the report date/test date if visible.
-
-Return strictly valid JSON matching the requested schema.`;
-
-      const geminiContents = JSON.parse(JSON.stringify(contents));
-      geminiContents.push({
-        role: "user",
-        parts: [{ text: labPrompt }],
-      });
-
-      let geminiResp: Response;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        geminiResp = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: geminiContents,
-            generationConfig: {
-              responseMimeType: "application/json",
-              responseSchema: {
-                type: "object",
-                properties: {
-                  fastingBloodSugar: {
-                    type: "object",
-                    properties: {
-                      value: { type: "number" },
-                      unit: { type: "string" },
-                    },
-                  },
-                  HbA1c: {
-                    type: "object",
-                    properties: {
-                      value: { type: "number" },
-                      unit: { type: "string" },
-                    },
-                  },
-                  totalCholesterol: {
-                    type: "object",
-                    properties: {
-                      value: { type: "number" },
-                      unit: { type: "string" },
-                    },
-                  },
-                  ldl: {
-                    type: "object",
-                    properties: {
-                      value: { type: "number" },
-                      unit: { type: "string" },
-                    },
-                  },
-                  hdl: {
-                    type: "object",
-                    properties: {
-                      value: { type: "number" },
-                      unit: { type: "string" },
-                    },
-                  },
-                  triglycerides: {
-                    type: "object",
-                    properties: {
-                      value: { type: "number" },
-                      unit: { type: "string" },
-                    },
-                  },
-                  bloodPressure: {
-                    type: "object",
-                    properties: {
-                      systolic: { type: "number" },
-                      diastolic: { type: "number" },
-                      unit: { type: "string" },
-                    },
-                  },
-                  weight: {
-                    type: "object",
-                    properties: {
-                      value: { type: "number" },
-                      unit: { type: "string" },
-                    },
-                  },
-                  height: {
-                    type: "object",
-                    properties: {
-                      value: { type: "number" },
-                      unit: { type: "string" },
-                    },
-                  },
-                  reportDate: {
-                    type: "string",
-                    description: "Date of the report in YYYY-MM-DD format if visible",
-                  },
-                },
-              },
-              temperature: 0.1,
-            },
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-      } catch (fetchErr: any) {
-        if (fetchErr?.name === "AbortError" || String(fetchErr?.message).includes("aborted")) {
-          return extractionUnavailable("LAB_EXTRACTION_TIMEOUT", 503);
-        }
-        return extractionUnavailable("LAB_EXTRACTION_UNAVAILABLE", 503);
-      }
-
-      if (!geminiResp.ok) {
-        return extractionUnavailable("LAB_EXTRACTION_UNAVAILABLE", 503);
-      }
-
-      let result: any = null;
-      try {
-        const geminiJson: any = await geminiResp.json();
-        const geminiText =
-          geminiJson?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") ??
-          "";
-        if (geminiText) {
-          result = JSON.parse(geminiText);
-        }
-      } catch {
-        return extractionUnavailable("LAB_EXTRACTION_PARSE_FAILED", 503);
-      }
-
-      if (!result || typeof result !== "object" || Array.isArray(result)) {
-        return extractionUnavailable("LAB_EXTRACTION_PARSE_FAILED", 503);
-      }
-
-      const biomarkerKeys = [
-        "fastingBloodSugar",
-        "HbA1c",
-        "totalCholesterol",
-        "ldl",
-        "hdl",
-        "triglycerides",
-        "weight",
-        "height",
-      ];
-      for (const name of biomarkerKeys) {
-        if (!(name in result)) continue;
-        const biomarker = result[name];
-        if (
-          !biomarker ||
-          typeof biomarker !== "object" ||
-          typeof biomarker.value !== "number" ||
-          !Number.isFinite(biomarker.value) ||
-          typeof biomarker.unit !== "string" ||
-          biomarker.unit.trim() === ""
-        ) {
-          return extractionUnavailable("LAB_EXTRACTION_PARSE_FAILED", 503);
-        }
-      }
-
-      if ("bloodPressure" in result) {
-        const bp = result.bloodPressure;
-        if (
-          !bp ||
-          typeof bp !== "object" ||
-          typeof bp.systolic !== "number" ||
-          !Number.isFinite(bp.systolic) ||
-          typeof bp.diastolic !== "number" ||
-          !Number.isFinite(bp.diastolic)
-        ) {
-          return extractionUnavailable("LAB_EXTRACTION_PARSE_FAILED", 503);
-        }
-      }
-
-      const extractedKeys = [...biomarkerKeys, "bloodPressure"].filter((name) => name in result);
-      if (extractedKeys.length === 0) {
-        return extractionUnavailable("LAB_EXTRACTION_EMPTY_RESULT", 503);
-      }
-
-      if (result.reportDate !== undefined && typeof result.reportDate !== "string") {
-        return extractionUnavailable("LAB_EXTRACTION_PARSE_FAILED", 503);
-      }
-
-      // Unit Normalization
-      if (result.fastingBloodSugar?.value && typeof result.fastingBloodSugar.value === "number") {
-        const unit = (result.fastingBloodSugar.unit || "").toLowerCase();
-        if (unit.includes("mmol")) {
-          result.fastingBloodSugar = {
-            value: Number((result.fastingBloodSugar.value * 18.018).toFixed(1)),
-            unit: "mg/dL",
-          };
-        } else {
-          result.fastingBloodSugar.unit = "mg/dL";
-        }
-      }
-
-      if (result.HbA1c?.value && typeof result.HbA1c.value === "number") {
-        const unit = (result.HbA1c.unit || "").toLowerCase();
-        if (unit.includes("mmol")) {
-          result.HbA1c = {
-            value: Number((result.HbA1c.value * 0.09148 + 2.152).toFixed(1)),
-            unit: "%",
-          };
-        } else {
-          result.HbA1c.unit = "%";
-        }
-      }
-
-      ["totalCholesterol", "ldl", "hdl", "triglycerides"].forEach((key) => {
-        if (result[key]?.value && typeof result[key].value === "number") {
-          const unit = (result[key].unit || "").toLowerCase();
-          if (unit.includes("mmol")) {
-            const factor = key === "triglycerides" ? 88.57 : 38.67;
-            result[key] = {
-              value: Number((result[key].value * factor).toFixed(1)),
-              unit: "mg/dL",
-            };
-          } else {
-            result[key].unit = "mg/dL";
-          }
-        }
-      });
-
-      if (result.weight?.value && typeof result.weight.value === "number") {
-        const unit = (result.weight.unit || "").toLowerCase();
-        if (unit.includes("lb")) {
-          result.weight = {
-            value: Number((result.weight.value * 0.453592).toFixed(1)),
-            unit: "kg",
-          };
-        } else {
-          result.weight.unit = "kg";
-        }
-      }
-
-      if (result.height?.value && typeof result.height.value === "number") {
-        const unit = (result.height.unit || "").toLowerCase();
-        if (unit === "m" || unit === "meters") {
-          result.height = {
-            value: Number((result.height.value * 100).toFixed(1)),
-            unit: "cm",
-          };
-        } else if (unit.includes("in")) {
-          result.height = {
-            value: Number((result.height.value * 2.54).toFixed(1)),
-            unit: "cm",
-          };
-        } else {
-          result.height.unit = "cm";
-        }
-      }
-
-      if (result.bloodPressure && typeof result.bloodPressure.systolic === "number") {
-        result.bloodPressure.unit = "mmHg";
-      }
-
+      // Step 6: Return formatted success response
       const durationMs = Date.now() - startTime;
-      console.log(
-        JSON.stringify({
-          requestId,
-          mimeType: safeMimeType,
-          fileSizeBucket,
-          status: "extracted",
-          durationMs,
-        })
+      return LabResponseBuilder.buildSuccess(
+        res,
+        normalizedResult,
+        requestId,
+        safeMimeType,
+        fileSizeBucket,
+        durationMs
       );
+    } catch (err: any) {
+      const durationMs = Date.now() - startTime;
+      const reasonCode = err instanceof LabPipelineError ? err.reasonCode : "LAB_EXTRACTION_UNAVAILABLE";
+      const statusCode = err instanceof LabPipelineError ? err.statusCode : 503;
 
-      return res.json({ ...result, status: "extracted" });
-    } catch {
-      return extractionUnavailable("LAB_EXTRACTION_UNAVAILABLE", 503);
+      return LabResponseBuilder.buildUnavailable(
+        res,
+        reasonCode,
+        statusCode,
+        requestId,
+        safeMimeType,
+        fileSizeBucket,
+        durationMs
+      );
     }
   }
 );

@@ -10,7 +10,7 @@
     "start": "node dist/server.js",
     "lint": "eslint .",
     "test": "npm run test:unit && npm run test:integration && npm run test:security && npm run test:semantic",
-    "test:unit": "tsx src/test-evidence-builder.ts && tsx src/test-unit.ts",
+    "test:unit": "tsx src/test-evidence-builder.ts && tsx src/test-lab-pipeline.ts && tsx src/test-unit.ts",
     "test:integration": "tsx src/test-v2-routes.ts && tsx src/test-v2-schemas.ts && tsx src/test-health-engine-v2-orchestration.ts && tsx src/test-v1-invariance.ts",
     "test:security": "tsx src/test-security.ts",
     "test:semantic": "tsx src/test-semantic.ts"
