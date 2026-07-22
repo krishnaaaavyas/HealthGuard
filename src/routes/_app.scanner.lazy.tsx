@@ -32,6 +32,42 @@ import {
 import SplitText from "@/components/ui/split-text";
 import { ShapeGrid } from "@/components/ui/shape-grid";
 
+export function getHumanReadableReason(reasonCode?: string, message?: string): string {
+  switch (reasonCode) {
+    case "NO_INGREDIENTS_DETECTED":
+      return "No ingredient list detected in this image. Please upload a clearer photo of the ingredient label.";
+    case "UNSUPPORTED_FORMAT":
+    case "SCANNER_FILE_UNSUPPORTED":
+    case "LAB_FILE_UNSUPPORTED":
+      return "Unsupported file format. Please upload a JPEG, PNG, or WebP image.";
+    case "IMAGE_TOO_LARGE":
+    case "LAB_FILE_TOO_LARGE":
+      return "Image file size exceeds 10 MB limit. Please upload a smaller image.";
+    case "IMAGE_EMPTY":
+    case "LAB_FILE_EMPTY":
+      return "Uploaded image file is empty.";
+    case "IMAGE_PREPROCESSING_FAILED":
+    case "LAB_UPLOAD_INVALID_IMAGE":
+      return "Selected image is corrupted or unreadable.";
+    case "GEMINI_AUTH_FAILED":
+    case "LAB_EXTRACTION_CREDENTIALS_MISSING":
+      return "AI extraction service authentication failed or API key is unconfigured.";
+    case "GEMINI_QUOTA_EXCEEDED":
+      return "AI extraction rate limit reached. Please try again in a few moments.";
+    case "GEMINI_TIMEOUT":
+    case "LAB_EXTRACTION_TIMEOUT":
+      return "AI extraction service timed out. Please try again.";
+    case "GEMINI_REQUEST_FAILED":
+    case "LAB_EXTRACTION_UNAVAILABLE":
+      return "AI extraction service is currently unavailable.";
+    case "GEMINI_RESPONSE_PARSE_FAILED":
+    case "LAB_EXTRACTION_PARSE_FAILED":
+      return "Unable to read ingredient text structure from this image.";
+    default:
+      return message || "Unable to extract ingredient text from image. Please ensure the label is clear or enter ingredients manually.";
+  }
+}
+
 export const Route = createLazyFileRoute("/_app/scanner")({
   component: ScannerPage,
 });
@@ -248,6 +284,7 @@ function ScannerPage() {
   const [rawText, setRawText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [lastUploadedImageData, setLastUploadedImageData] = useState<{ base64Data: string; mimeType: string; name: string } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scannerState, setScannerState] = useState<ScannerState>("idle");
   const [report, setReport] = useState<IngredientReport | null>(null);
@@ -325,6 +362,12 @@ function ScannerPage() {
       const base64Data = dataUrl.split(",")[1];
 
       stopCamera();
+
+      setLastUploadedImageData({
+        base64Data,
+        mimeType: "image/jpeg",
+        name: "Camera Snapshot",
+      });
 
       const result = await assessIngredientsImage({
         base64Image: base64Data,
@@ -442,6 +485,12 @@ function ScannerPage() {
         const resultStr = reader.result as string;
         const base64Data = resultStr.split(",")[1];
 
+        setLastUploadedImageData({
+          base64Data,
+          mimeType: file.type || "image/jpeg",
+          name: file.name.replace(/\.[^/.]+$/, ""),
+        });
+
         const result = await assessIngredientsImage({
           base64Image: base64Data,
           mimeType: file.type,
@@ -540,6 +589,7 @@ function ScannerPage() {
     setReport(null);
     setRawText("");
     setSelectedFile(null);
+    setLastUploadedImageData(null);
     if (filePreviewUrl) {
       URL.revokeObjectURL(filePreviewUrl);
       setFilePreviewUrl(null);
@@ -548,8 +598,40 @@ function ScannerPage() {
     setScannerState("idle");
   };
 
-  const retryImageAnalysis = () => {
-    if (selectedFile) {
+  const retryImageAnalysis = async () => {
+    if (lastUploadedImageData) {
+      setIsScanning(true);
+      setScannerState("extracting");
+      try {
+        const result = await assessIngredientsImage({
+          base64Image: lastUploadedImageData.base64Data,
+          mimeType: lastUploadedImageData.mimeType,
+        });
+
+        if (result.status === "extraction-unavailable" || result.status === "unauthorized" || result.status === "failed") {
+          setScannerState("failed");
+          setReport({
+            ...result,
+            name: lastUploadedImageData.name,
+            source: "Uploaded image",
+          });
+        } else {
+          setScannerState("success");
+          setReport({
+            ...result,
+            name: result.name || lastUploadedImageData.name,
+            source: "Uploaded image",
+          });
+          toast.success(tr("fit_ingredients_analysed_toast", currentLang));
+        }
+      } catch (err: unknown) {
+        console.error("Vision API error on retry:", err);
+        toast.error("Retry failed.");
+        setScannerState("failed");
+      } finally {
+        setIsScanning(false);
+      }
+    } else if (selectedFile) {
       const event = {
         target: { files: [selectedFile] },
       } as unknown as React.ChangeEvent<HTMLInputElement>;
@@ -792,8 +874,8 @@ function ScannerPage() {
                     {report.message || "Could not read or extract ingredient text from the image. Please ensure the label is clear, or use manual entry below."}
                   </p>
                   {report.reasonCode && (
-                    <Badge variant="outline" className="text-[10px] font-mono bg-rose-500/10 text-rose-600 border-rose-500/20">
-                      Reason: {report.reasonCode}
+                    <Badge variant="outline" className="text-[11px] font-semibold bg-rose-500/10 text-rose-600 border-rose-500/20 px-2.5 py-1">
+                      {getHumanReadableReason(report.reasonCode, report.message)}
                     </Badge>
                   )}
 
