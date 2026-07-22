@@ -586,7 +586,89 @@ export interface ExtractedLabReport {
   ldl?: { value: number; unit: string };
   hdl?: { value: number; unit: string };
   triglycerides?: { value: number; unit: string };
+  bloodPressure?: { systolic: number; diastolic: number; unit: string };
+  weight?: { value: number; unit: string };
+  height?: { value: number; unit: string };
   reportDate?: string;
+}
+
+export function normalizeLabUnits(report: ExtractedLabReport): ExtractedLabReport {
+  if (!report || typeof report !== "object") return report;
+  const result: ExtractedLabReport = { ...report };
+
+  if (result.fastingBloodSugar?.value && typeof result.fastingBloodSugar.value === "number") {
+    const u = (result.fastingBloodSugar.unit || "").toLowerCase();
+    if (u.includes("mmol")) {
+      result.fastingBloodSugar = {
+        value: Number((result.fastingBloodSugar.value * 18.018).toFixed(1)),
+        unit: "mg/dL",
+      };
+    } else {
+      result.fastingBloodSugar.unit = "mg/dL";
+    }
+  }
+
+  if (result.HbA1c?.value && typeof result.HbA1c.value === "number") {
+    const u = (result.HbA1c.unit || "").toLowerCase();
+    if (u.includes("mmol")) {
+      result.HbA1c = {
+        value: Number((result.HbA1c.value * 0.09148 + 2.152).toFixed(1)),
+        unit: "%",
+      };
+    } else {
+      result.HbA1c.unit = "%";
+    }
+  }
+
+  (["totalCholesterol", "ldl", "hdl", "triglycerides"] as const).forEach((key) => {
+    if (result[key]?.value && typeof result[key].value === "number") {
+      const u = (result[key]!.unit || "").toLowerCase();
+      if (u.includes("mmol")) {
+        const factor = key === "triglycerides" ? 88.57 : 38.67;
+        result[key] = {
+          value: Number((result[key]!.value * factor).toFixed(1)),
+          unit: "mg/dL",
+        };
+      } else {
+        result[key]!.unit = "mg/dL";
+      }
+    }
+  });
+
+  if (result.weight?.value && typeof result.weight.value === "number") {
+    const u = (result.weight.unit || "").toLowerCase();
+    if (u.includes("lb")) {
+      result.weight = {
+        value: Number((result.weight.value * 0.453592).toFixed(1)),
+        unit: "kg",
+      };
+    } else {
+      result.weight.unit = "kg";
+    }
+  }
+
+  if (result.height?.value && typeof result.height.value === "number") {
+    const u = (result.height.unit || "").toLowerCase();
+    if (u === "m" || u === "meters") {
+      result.height = {
+        value: Number((result.height.value * 100).toFixed(1)),
+        unit: "cm",
+      };
+    } else if (u.includes("in")) {
+      result.height = {
+        value: Number((result.height.value * 2.54).toFixed(1)),
+        unit: "cm",
+      };
+    } else {
+      result.height.unit = "cm";
+    }
+  }
+
+  if (result.bloodPressure && typeof result.bloodPressure.systolic === "number") {
+    result.bloodPressure.unit = "mmHg";
+  }
+
+  return result;
 }
 
 export async function assessLabReportImage({
@@ -599,13 +681,35 @@ export async function assessLabReportImage({
   externalProcessingConsent?: boolean;
 }): Promise<ExtractedLabReport> {
   const normMime = (mimeType || "").toLowerCase();
+  const supportedTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf", "image/jpg"];
+
   if (normMime.includes("heic") || normMime.includes("heif")) {
     return {
       status: "extraction-unavailable",
-      reasonCode: "LAB_FILE_UNSUPPORTED",
+      reasonCode: "UNSUPPORTED_FORMAT",
       observations: [],
       manualEntryAllowed: true,
-      message: "HEIC/HEIF image format is not supported. Please upload a PDF, JPG, or PNG.",
+      message: "HEIC/HEIF format is not supported. Please upload a PDF, PNG, JPEG, or WebP file.",
+    };
+  }
+
+  if (!base64Image || base64Image.trim() === "") {
+    return {
+      status: "extraction-unavailable",
+      reasonCode: "REPORT_EMPTY",
+      observations: [],
+      manualEntryAllowed: true,
+      message: "Uploaded report file is empty.",
+    };
+  }
+
+  if (!supportedTypes.some((t) => normMime.includes(t.replace("image/", "")))) {
+    return {
+      status: "extraction-unavailable",
+      reasonCode: "UNSUPPORTED_FORMAT",
+      observations: [],
+      manualEntryAllowed: true,
+      message: "Unsupported file format. Please upload a PDF, PNG, JPEG, or WebP file.",
     };
   }
 
@@ -647,24 +751,28 @@ export async function assessLabReportImage({
     if (data && typeof data === "object") {
       return {
         status: data.status || "extraction-unavailable",
-        reasonCode: data.reasonCode || data.error || "LAB_EXTRACTION_PROVIDER_REJECTED",
+        reasonCode: data.reasonCode || data.error || "EXTRACTION_UNAVAILABLE",
         observations: data.observations || [],
         manualEntryAllowed: data.manualEntryAllowed ?? true,
-        message: data.message,
+        message: data.message || "Extraction unavailable. Allow manual entry.",
       };
     }
     return {
       status: "extraction-unavailable",
-      reasonCode: "LAB_EXTRACTION_PROVIDER_REJECTED",
+      reasonCode: "EXTRACTION_UNAVAILABLE",
       observations: [],
       manualEntryAllowed: true,
+      message: "Extraction unavailable. Allow manual entry.",
     };
   }
 
-  return data || {
-    status: "extraction-unavailable",
-    reasonCode: "LAB_EXTRACTION_EMPTY_RESULT",
-    observations: [],
-    manualEntryAllowed: true,
-  };
+  return normalizeLabUnits(
+    data || {
+      status: "extraction-unavailable",
+      reasonCode: "OCR_FAILED",
+      observations: [],
+      manualEntryAllowed: true,
+      message: "Extraction unavailable. Allow manual entry.",
+    }
+  );
 }

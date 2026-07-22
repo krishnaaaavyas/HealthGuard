@@ -1696,6 +1696,9 @@ Biomarkers to look for:
 4. ldl (LDL Cholesterol)
 5. hdl (HDL Cholesterol)
 6. triglycerides
+7. bloodPressure (systolic and diastolic in mmHg)
+8. weight (body weight)
+9. height (body height)
 
 Also extract the report date/test date if visible.
 
@@ -1763,6 +1766,28 @@ Return strictly valid JSON matching the requested schema.`;
                       unit: { type: "string" },
                     },
                   },
+                  bloodPressure: {
+                    type: "object",
+                    properties: {
+                      systolic: { type: "number" },
+                      diastolic: { type: "number" },
+                      unit: { type: "string" },
+                    },
+                  },
+                  weight: {
+                    type: "object",
+                    properties: {
+                      value: { type: "number" },
+                      unit: { type: "string" },
+                    },
+                  },
+                  height: {
+                    type: "object",
+                    properties: {
+                      value: { type: "number" },
+                      unit: { type: "string" },
+                    },
+                  },
                   reportDate: {
                     type: "string",
                     description: "Date of the report in YYYY-MM-DD format if visible",
@@ -1810,6 +1835,8 @@ Return strictly valid JSON matching the requested schema.`;
         "ldl",
         "hdl",
         "triglycerides",
+        "weight",
+        "height",
       ];
       for (const name of biomarkerKeys) {
         if (!(name in result)) continue;
@@ -1826,13 +1853,100 @@ Return strictly valid JSON matching the requested schema.`;
         }
       }
 
-      const extractedKeys = biomarkerKeys.filter((name) => name in result);
+      if ("bloodPressure" in result) {
+        const bp = result.bloodPressure;
+        if (
+          !bp ||
+          typeof bp !== "object" ||
+          typeof bp.systolic !== "number" ||
+          !Number.isFinite(bp.systolic) ||
+          typeof bp.diastolic !== "number" ||
+          !Number.isFinite(bp.diastolic)
+        ) {
+          return extractionUnavailable("LAB_EXTRACTION_PARSE_FAILED", 503);
+        }
+      }
+
+      const extractedKeys = [...biomarkerKeys, "bloodPressure"].filter((name) => name in result);
       if (extractedKeys.length === 0) {
         return extractionUnavailable("LAB_EXTRACTION_EMPTY_RESULT", 503);
       }
 
       if (result.reportDate !== undefined && typeof result.reportDate !== "string") {
         return extractionUnavailable("LAB_EXTRACTION_PARSE_FAILED", 503);
+      }
+
+      // Unit Normalization
+      if (result.fastingBloodSugar?.value && typeof result.fastingBloodSugar.value === "number") {
+        const unit = (result.fastingBloodSugar.unit || "").toLowerCase();
+        if (unit.includes("mmol")) {
+          result.fastingBloodSugar = {
+            value: Number((result.fastingBloodSugar.value * 18.018).toFixed(1)),
+            unit: "mg/dL",
+          };
+        } else {
+          result.fastingBloodSugar.unit = "mg/dL";
+        }
+      }
+
+      if (result.HbA1c?.value && typeof result.HbA1c.value === "number") {
+        const unit = (result.HbA1c.unit || "").toLowerCase();
+        if (unit.includes("mmol")) {
+          result.HbA1c = {
+            value: Number((result.HbA1c.value * 0.09148 + 2.152).toFixed(1)),
+            unit: "%",
+          };
+        } else {
+          result.HbA1c.unit = "%";
+        }
+      }
+
+      ["totalCholesterol", "ldl", "hdl", "triglycerides"].forEach((key) => {
+        if (result[key]?.value && typeof result[key].value === "number") {
+          const unit = (result[key].unit || "").toLowerCase();
+          if (unit.includes("mmol")) {
+            const factor = key === "triglycerides" ? 88.57 : 38.67;
+            result[key] = {
+              value: Number((result[key].value * factor).toFixed(1)),
+              unit: "mg/dL",
+            };
+          } else {
+            result[key].unit = "mg/dL";
+          }
+        }
+      });
+
+      if (result.weight?.value && typeof result.weight.value === "number") {
+        const unit = (result.weight.unit || "").toLowerCase();
+        if (unit.includes("lb")) {
+          result.weight = {
+            value: Number((result.weight.value * 0.453592).toFixed(1)),
+            unit: "kg",
+          };
+        } else {
+          result.weight.unit = "kg";
+        }
+      }
+
+      if (result.height?.value && typeof result.height.value === "number") {
+        const unit = (result.height.unit || "").toLowerCase();
+        if (unit === "m" || unit === "meters") {
+          result.height = {
+            value: Number((result.height.value * 100).toFixed(1)),
+            unit: "cm",
+          };
+        } else if (unit.includes("in")) {
+          result.height = {
+            value: Number((result.height.value * 2.54).toFixed(1)),
+            unit: "cm",
+          };
+        } else {
+          result.height.unit = "cm";
+        }
+      }
+
+      if (result.bloodPressure && typeof result.bloodPressure.systolic === "number") {
+        result.bloodPressure.unit = "mmHg";
       }
 
       const durationMs = Date.now() - startTime;

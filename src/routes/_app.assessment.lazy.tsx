@@ -461,6 +461,34 @@ function AssessmentPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size === 0) {
+      toast.error("Uploaded report file is empty.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size limit exceeded. Please upload a report file under 10 MB.");
+      return;
+    }
+
+    const normType = (file.type || "").toLowerCase();
+    const fileName = (file.name || "").toLowerCase();
+    const isSupported =
+      normType.includes("pdf") ||
+      normType.includes("jpeg") ||
+      normType.includes("png") ||
+      normType.includes("webp") ||
+      fileName.endsWith(".pdf") ||
+      fileName.endsWith(".jpg") ||
+      fileName.endsWith(".jpeg") ||
+      fileName.endsWith(".png") ||
+      fileName.endsWith(".webp");
+
+    if (!isSupported || normType.includes("heic") || normType.includes("heif") || fileName.endsWith(".heic") || fileName.endsWith(".heif")) {
+      toast.error("Unsupported file format. Please upload a PDF, PNG, JPEG, or WebP file.");
+      return;
+    }
+
     setSelectedFile(file);
     stopCamera();
 
@@ -1500,7 +1528,7 @@ function AssessmentPage() {
                             <div className="relative border-2 border-dashed border-border/80 hover:border-teal/50 rounded-2xl p-6 bg-surface-muted/15 hover:bg-teal/[0.01] transition-all flex flex-col items-center justify-center min-h-[160px] cursor-pointer group text-center">
                               <input
                                 type="file"
-                                accept="image/*,application/pdf"
+                                accept="application/pdf,image/jpeg,image/png,image/webp"
                                 onChange={handleFileUpload}
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                               />
@@ -1520,7 +1548,7 @@ function AssessmentPage() {
                               </p>
                               
                               <div className="flex gap-1.5 justify-center mt-3">
-                                {["PDF", "JPG", "PNG"].map((ext) => (
+                                {["PDF", "JPG", "PNG", "WEBP"].map((ext) => (
                                   <span key={ext} className="text-[10px] font-bold px-2 py-0.5 rounded bg-surface border border-border/60 text-muted-foreground font-mono">
                                     ✓ {ext}
                                   </span>
@@ -1712,14 +1740,45 @@ function AssessmentPage() {
                 {/* ── View 3: Review Extracted Values ── */}
                 {bloodUploadState === "review" && (
                   <div className="space-y-6 py-2">
-                    <div className="text-center max-w-md mx-auto space-y-2">
-                      <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                        We found {Object.values(extractedLabs).filter((obs) => obs.value > 0).length} biomarkers
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        Review and verify the extracted health metrics below.
-                      </p>
-                    </div>
+                    {Object.values(extractedLabs).filter((obs) => obs.value > 0).length === 0 ? (
+                      <div className="text-center max-w-md mx-auto space-y-4 rounded-2xl border border-amber-400/30 bg-amber-50/20 dark:bg-amber-950/20 p-6">
+                        <div className="mx-auto h-12 w-12 rounded-full bg-amber-400/20 flex items-center justify-center text-amber-500">
+                          <AlertTriangle className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-display text-base font-bold text-foreground">Extraction unavailable. Allow manual entry.</h3>
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                            No biomarkers could be automatically extracted from this file. You can retry uploading or enter values manually.
+                          </p>
+                        </div>
+                        <div className="flex gap-2 justify-center pt-2">
+                          <Button
+                            type="button"
+                            onClick={() => setBloodUploadState("upload")}
+                            className="bg-teal text-white hover:bg-teal/90 text-xs font-semibold h-9 rounded-xl cursor-pointer px-4"
+                          >
+                            Retry Upload
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center max-w-md mx-auto space-y-2">
+                        <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+                          We found {Object.values(extractedLabs).filter((obs) => obs.value > 0).length} biomarkers
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          Review and verify the extracted health metrics below.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setBloodUploadState("upload")}
+                          className="text-xs text-teal hover:bg-teal/5 font-semibold h-8 rounded-lg cursor-pointer"
+                        >
+                          🔄 Upload Different Report / Retry
+                        </Button>
+                      </div>
+                    )}
 
                     <div className="max-w-2xl mx-auto space-y-3">
                       {/* Detected biomarkers */}
