@@ -13,6 +13,8 @@ export interface ParsedLabResult {
   reportDate?: string;
 }
 
+const STAGE = "JSON Parsing";
+
 export class LabParser {
   /**
    * Parse raw OCR text into structured lab result object, validating schema and values.
@@ -22,7 +24,7 @@ export class LabParser {
 
     if (!rawJsonText || typeof rawJsonText !== "string" || rawJsonText.trim() === "") {
       console.log("[LabParser] Parsing failed: Empty JSON text.");
-      throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503);
+      throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503, "Gemini returned an empty response. No biomarkers could be read.", STAGE);
     }
 
     let result: any = null;
@@ -30,12 +32,12 @@ export class LabParser {
       result = JSON.parse(rawJsonText);
     } catch {
       console.log("[LabParser] Parsing failed: Malformed JSON syntax.");
-      throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503);
+      throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503, "Gemini response contained malformed JSON and could not be parsed.", STAGE);
     }
 
     if (!result || typeof result !== "object" || Array.isArray(result)) {
       console.log("[LabParser] Parsing failed: Result is not a valid JSON object.");
-      throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503);
+      throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503, "Gemini response is not a valid JSON object.", STAGE);
     }
 
     const biomarkerKeys = [
@@ -61,7 +63,7 @@ export class LabParser {
         biomarker.unit.trim() === ""
       ) {
         console.log(`[LabParser] Parsing failed: Invalid schema for biomarker '${name}'.`);
-        throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503);
+        throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503, `Extracted biomarker '${name}' has an invalid schema or non-finite value.`, STAGE);
       }
     }
 
@@ -76,19 +78,19 @@ export class LabParser {
         !Number.isFinite(bp.diastolic)
       ) {
         console.log("[LabParser] Parsing failed: Invalid bloodPressure schema.");
-        throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503);
+        throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503, "Extracted bloodPressure has an invalid or non-numeric systolic/diastolic value.", STAGE);
       }
     }
 
     const extractedKeys = [...biomarkerKeys, "bloodPressure"].filter((name) => name in result);
     if (extractedKeys.length === 0) {
       console.log("[LabParser] Parsing failed: Zero biomarkers extracted in result.");
-      throw new LabPipelineError("LAB_EXTRACTION_EMPTY_RESULT", 503);
+      throw new LabPipelineError("LAB_EXTRACTION_EMPTY_RESULT", 503, "No recognizable biomarkers were found in this report.", STAGE);
     }
 
     if (result.reportDate !== undefined && typeof result.reportDate !== "string") {
       console.log("[LabParser] Parsing failed: Invalid reportDate type.");
-      throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503);
+      throw new LabPipelineError("LAB_EXTRACTION_PARSE_FAILED", 503, "Extracted reportDate is not a valid string.", STAGE);
     }
 
     console.log(`[LabParser] Successfully parsed ${extractedKeys.length} biomarkers.`);

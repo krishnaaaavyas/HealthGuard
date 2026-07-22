@@ -11,16 +11,20 @@ export interface LabValidationResult {
 export class LabPipelineError extends Error {
   public reasonCode: string;
   public statusCode: number;
+  public stage: string;
 
-  constructor(reasonCode: string, statusCode: number = 400, message?: string) {
+  constructor(reasonCode: string, statusCode: number = 400, message?: string, stage: string = "Validation") {
     super(message || reasonCode);
     this.name = "LabPipelineError";
     this.reasonCode = reasonCode;
     this.statusCode = statusCode;
+    this.stage = stage;
   }
 }
 
 export class LabUploadValidator {
+  private static readonly STAGE = "Validation";
+
   private static getFileSizeBucket(bytes: number): string {
     if (bytes < 100 * 1024) return "<100KB";
     if (bytes < 1024 * 1024) return "100KB-1MB";
@@ -39,7 +43,7 @@ export class LabUploadValidator {
 
     if (!contents || !Array.isArray(contents) || contents.length === 0) {
       console.log("[LabUploadValidator] Validation failed: Missing or invalid contents array.");
-      throw new LabPipelineError("LAB_FILE_INVALID", 400);
+      throw new LabPipelineError("LAB_FILE_INVALID", 400, "Missing or invalid file contents.", this.STAGE);
     }
 
     let safeMimeType = "unknown";
@@ -61,7 +65,7 @@ export class LabUploadValidator {
     const processingEnabled = process.env.GEMINI_LAB_PROCESSING_ENABLED !== "false";
     if (!processingEnabled) {
       console.log("[LabUploadValidator] Validation failed: Lab processing is disabled.");
-      throw new LabPipelineError("LAB_EXTRACTION_DISABLED", 503);
+      throw new LabPipelineError("LAB_EXTRACTION_DISABLED", 503, "Lab report AI extraction is currently disabled.", this.STAGE);
     }
 
     const consentRequired = process.env.REQUIRE_EXTERNAL_PROCESSING_CONSENT
@@ -70,7 +74,7 @@ export class LabUploadValidator {
 
     if (consentRequired && externalProcessingConsent !== true) {
       console.log("[LabUploadValidator] Validation failed: Required processing consent missing.");
-      throw new LabPipelineError("LAB_EXTRACTION_CONSENT_REQUIRED", 422);
+      throw new LabPipelineError("LAB_EXTRACTION_CONSENT_REQUIRED", 422, "Consent for external AI processing is required before upload.", this.STAGE);
     }
 
     try {
@@ -84,21 +88,21 @@ export class LabUploadValidator {
         msg === "LAB_UPLOAD_MIME_SIGNATURE_MISMATCH" ||
         msg === "LAB_UPLOAD_HEIC_UNSUPPORTED"
       ) {
-        throw new LabPipelineError("LAB_FILE_UNSUPPORTED", 400);
+        throw new LabPipelineError("LAB_FILE_UNSUPPORTED", 400, "Unsupported file format. Please upload a PDF, PNG, JPEG, or WebP file.", this.STAGE);
       }
       if (msg === "LAB_UPLOAD_EMPTY_FILE") {
-        throw new LabPipelineError("LAB_FILE_EMPTY", 400);
+        throw new LabPipelineError("LAB_FILE_EMPTY", 400, "Uploaded report file is empty.", this.STAGE);
       }
       if (msg === "LAB_UPLOAD_SIZE_LIMIT_EXCEEDED") {
-        throw new LabPipelineError("LAB_FILE_TOO_LARGE", 400);
+        throw new LabPipelineError("LAB_FILE_TOO_LARGE", 400, "File size limit exceeded. Please upload a report under 10 MB.", this.STAGE);
       }
       if (msg === "LAB_UPLOAD_DIMENSIONS_EXCEEDED") {
-        throw new LabPipelineError("LAB_IMAGE_DIMENSIONS_EXCEEDED", 400);
+        throw new LabPipelineError("LAB_IMAGE_DIMENSIONS_EXCEEDED", 400, "Image dimensions exceed the maximum allowed size.", this.STAGE);
       }
       if (msg === "LAB_UPLOAD_PDF_UNREADABLE") {
-        throw new LabPipelineError("LAB_PDF_UNREADABLE", 400);
+        throw new LabPipelineError("LAB_PDF_UNREADABLE", 400, "PDF file is encrypted or unreadable. Please upload an unprotected PDF.", this.STAGE);
       }
-      throw new LabPipelineError("LAB_FILE_INVALID", 400);
+      throw new LabPipelineError("LAB_FILE_INVALID", 400, "Uploaded file is invalid or corrupt.", this.STAGE);
     }
 
     console.log(`[LabUploadValidator] Validation passed. mimeType: ${safeMimeType}, sizeBucket: ${fileSizeBucket}`);

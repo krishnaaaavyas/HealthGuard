@@ -1,5 +1,7 @@
 import { LabPipelineError } from "./labUploadValidator.service.js";
 
+const STAGE = "Gemini OCR";
+
 export class GeminiOCRService {
   /**
    * Execute Gemini OCR API request to extract raw biomarker JSON text.
@@ -15,7 +17,7 @@ export class GeminiOCRService {
       key.trim() === ""
     ) {
       console.log("[GeminiOCRService] OCR failed: Gemini API key missing or invalid.");
-      throw new LabPipelineError("LAB_EXTRACTION_CREDENTIALS_MISSING", 503);
+      throw new LabPipelineError("LAB_EXTRACTION_CREDENTIALS_MISSING", 503, "Gemini API key is missing or invalid. Configure GEMINI_API_KEY.", STAGE);
     }
 
     const model = "gemini-2.5-flash";
@@ -140,15 +142,15 @@ Return strictly valid JSON matching the requested schema.`;
     } catch (fetchErr: any) {
       if (fetchErr?.name === "AbortError" || String(fetchErr?.message).includes("aborted")) {
         console.log("[GeminiOCRService] OCR failed: Timeout contacting Gemini API.");
-        throw new LabPipelineError("LAB_EXTRACTION_TIMEOUT", 503);
+        throw new LabPipelineError("LAB_EXTRACTION_TIMEOUT", 503, "Gemini API request timed out after 10 seconds.", STAGE);
       }
       console.log(`[GeminiOCRService] OCR failed: Fetch error: ${fetchErr?.message}`);
-      throw new LabPipelineError("LAB_EXTRACTION_UNAVAILABLE", 503);
+      throw new LabPipelineError("LAB_EXTRACTION_UNAVAILABLE", 503, `Network error contacting Gemini API: ${fetchErr?.message}`, STAGE);
     }
 
     if (!geminiResp.ok) {
       console.log(`[GeminiOCRService] OCR failed: Gemini HTTP status ${geminiResp.status}`);
-      throw new LabPipelineError("LAB_EXTRACTION_UNAVAILABLE", 503);
+      throw new LabPipelineError("LAB_EXTRACTION_UNAVAILABLE", 503, `Gemini API returned HTTP ${geminiResp.status}.`, STAGE);
     }
 
     const geminiJson: any = await geminiResp.json();

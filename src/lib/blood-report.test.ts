@@ -132,4 +132,64 @@ describe("Blood Report Analysis & Pipeline Audit", () => {
     expect(normalized.bloodPressure?.diastolic).toBe(80);
     expect(normalized.bloodPressure?.unit).toBe("mmHg");
   });
+
+  it("handles manual-entry-required status gracefully from API", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({
+        status: "manual-entry-required",
+        reasonCode: "LAB_EXTRACTION_TIMEOUT",
+        manualEntryAllowed: true,
+        missingBiomarkers: ["fastingBloodSugar", "HbA1c"],
+        confidence: 0,
+        observations: [],
+      }),
+    });
+
+    try {
+      const res = await assessLabReportImage({
+        base64Image: "SGVsbG8gV29ybGQ=",
+        mimeType: "image/png",
+        externalProcessingConsent: true,
+      });
+
+      expect(res.httpStatus).toBe(503);
+      expect(res.status).toBe("manual-entry-required");
+      expect(res.reasonCode).toBe("LAB_EXTRACTION_TIMEOUT");
+      expect(res.manualEntryAllowed).toBe(true);
+      expect(res.missingBiomarkers).toEqual(["fastingBloodSugar", "HbA1c"]);
+      expect(res.confidence).toBe(0);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("returns httpStatus 200 and status extracted on successful AI extraction", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        status: "extracted",
+        fastingBloodSugar: { value: 95, unit: "mg/dL" },
+        confidence: 0.95,
+      }),
+    });
+
+    try {
+      const res = await assessLabReportImage({
+        base64Image: "SGVsbG8gV29ybGQ=",
+        mimeType: "image/png",
+        externalProcessingConsent: true,
+      });
+
+      expect(res.httpStatus).toBe(200);
+      expect(res.status).toBe("extracted");
+      expect(res.fastingBloodSugar?.value).toBe(95);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });

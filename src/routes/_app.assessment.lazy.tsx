@@ -416,13 +416,33 @@ function AssessmentPage() {
 
     try {
       const [result] = await Promise.all([ocrPromise, animPromise]);
-      if (result?.status === "extraction-unavailable") {
+      const httpStatus = result?.httpStatus ?? (result?.status === "extracted" ? 200 : (result?.reasonCode === "UNSUPPORTED_FORMAT" || result?.reasonCode === "REPORT_EMPTY" ? 400 : 503));
+
+      if (httpStatus >= 400 && httpStatus < 500) {
+        // HTTP 400 / 422: Upload validation failure
+        setBloodUploadState("upload");
+        toast.error(`Validation error: ${getExtractionErrorMessage(result?.reasonCode || result?.message)}`);
+      } else if (httpStatus >= 500) {
+        // HTTP >= 500: Server failure
         setBloodUploadState("review");
-        toast.error(getExtractionErrorMessage(result.reasonCode));
-      } else {
+        toast.error("Server error: Unable to analyze lab report. Please enter values manually.");
+      } else if (result?.status === "manual-entry-required") {
+        // status="manual-entry-required": Navigate directly to manual biomarker entry
+        initializeEmptyLabs();
+        setBloodUploadState("review");
+        toast.info("AI extraction unavailable. Switched to manual biomarker entry.");
+      } else if (result?.status === "extraction-unavailable") {
+        // status="extraction-unavailable": Show warning UI instead of success
+        setBloodUploadState("review");
+        toast.warning(`Extraction unavailable: ${getExtractionErrorMessage(result?.reasonCode)}`);
+      } else if (httpStatus >= 200 && httpStatus < 300 && result?.status === "extracted") {
+        // Strictly ONLY show success toast when HTTP status is 2xx AND response.status === "extracted"
         processOCRResult(result);
         setBloodUploadState("review");
         toast.success("Lab report analyzed successfully!");
+      } else {
+        setBloodUploadState("review");
+        toast.warning(getExtractionErrorMessage(result?.reasonCode));
       }
     } catch (err: any) {
       console.error("OCR analysis failure:", err);

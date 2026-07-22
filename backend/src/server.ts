@@ -1766,6 +1766,8 @@ app.post(
       const durationMs = Date.now() - startTime;
       const reasonCode = err instanceof LabPipelineError ? err.reasonCode : "LAB_EXTRACTION_UNAVAILABLE";
       const statusCode = err instanceof LabPipelineError ? err.statusCode : 503;
+      const stage = err instanceof LabPipelineError ? err.stage : "Unknown";
+      const message = err instanceof LabPipelineError ? err.message : "An unexpected error occurred during lab report extraction.";
 
       return LabResponseBuilder.buildUnavailable(
         res,
@@ -1774,7 +1776,9 @@ app.post(
         requestId,
         safeMimeType,
         fileSizeBucket,
-        durationMs
+        durationMs,
+        stage,
+        message
       );
     }
   }

@@ -597,6 +597,9 @@ export interface ExtractedLabReport {
   observations?: any[];
   manualEntryAllowed?: boolean;
   message?: string;
+  missingBiomarkers?: string[];
+  confidence?: number;
+  httpStatus?: number;
   fastingBloodSugar?: { value: number; unit: string };
   HbA1c?: { value: number; unit: string };
   totalCholesterol?: { value: number; unit: string };
@@ -702,6 +705,7 @@ export async function assessLabReportImage({
 
   if (normMime.includes("heic") || normMime.includes("heif")) {
     return {
+      httpStatus: 400,
       status: "extraction-unavailable",
       reasonCode: "UNSUPPORTED_FORMAT",
       observations: [],
@@ -712,6 +716,7 @@ export async function assessLabReportImage({
 
   if (!base64Image || base64Image.trim() === "") {
     return {
+      httpStatus: 400,
       status: "extraction-unavailable",
       reasonCode: "REPORT_EMPTY",
       observations: [],
@@ -722,6 +727,7 @@ export async function assessLabReportImage({
 
   if (!supportedTypes.some((t) => normMime.includes(t.replace("image/", "")))) {
     return {
+      httpStatus: 400,
       status: "extraction-unavailable",
       reasonCode: "UNSUPPORTED_FORMAT",
       observations: [],
@@ -767,23 +773,29 @@ export async function assessLabReportImage({
   if (!response.ok) {
     if (data && typeof data === "object") {
       return {
+        httpStatus: response.status,
         status: data.status || "extraction-unavailable",
         reasonCode: data.reasonCode || data.error || "EXTRACTION_UNAVAILABLE",
         observations: data.observations || [],
         manualEntryAllowed: data.manualEntryAllowed ?? true,
+        missingBiomarkers: data.missingBiomarkers || [],
+        confidence: data.confidence ?? 0,
         message: data.message || "Extraction unavailable. Allow manual entry.",
       };
     }
     return {
+      httpStatus: response.status,
       status: "extraction-unavailable",
       reasonCode: "EXTRACTION_UNAVAILABLE",
       observations: [],
       manualEntryAllowed: true,
+      missingBiomarkers: [],
+      confidence: 0,
       message: "Extraction unavailable. Allow manual entry.",
     };
   }
 
-  return normalizeLabUnits(
+  const normalized = normalizeLabUnits(
     data || {
       status: "extraction-unavailable",
       reasonCode: "OCR_FAILED",
@@ -792,4 +804,7 @@ export async function assessLabReportImage({
       message: "Extraction unavailable. Allow manual entry.",
     }
   );
+
+  normalized.httpStatus = response.status;
+  return normalized;
 }

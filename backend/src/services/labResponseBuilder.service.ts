@@ -4,6 +4,9 @@ import { ParsedLabResult } from "./labParser.service.js";
 export interface LabDegradationResponse {
   status: "manual-entry-required" | "extraction-unavailable";
   reasonCode: string;
+  stage: string;
+  message: string;
+  processingTime: number;
   manualEntryAllowed: true;
   missingBiomarkers: string[];
   confidence: number;
@@ -34,6 +37,8 @@ export class LabResponseBuilder {
     mimeType: string,
     fileSizeBucket: string,
     durationMs: number,
+    stage: string = "Unknown",
+    message: string = "Extraction unavailable. Allow manual entry.",
     extractedBiomarkerKeys: string[] = []
   ): Response {
     console.log(
@@ -42,6 +47,7 @@ export class LabResponseBuilder {
         mimeType,
         fileSizeBucket,
         reasonCode,
+        stage,
         status: "manual-entry-required",
         durationMs,
       })
@@ -54,6 +60,9 @@ export class LabResponseBuilder {
     const payload: LabDegradationResponse = {
       status: "manual-entry-required",
       reasonCode,
+      stage,
+      message,
+      processingTime: durationMs,
       manualEntryAllowed: true,
       missingBiomarkers,
       confidence: 0,
@@ -80,6 +89,7 @@ export class LabResponseBuilder {
         mimeType,
         fileSizeBucket,
         status: "extracted",
+        stage: "Complete",
         durationMs,
       })
     );
@@ -87,6 +97,8 @@ export class LabResponseBuilder {
     return res.json({
       ...result,
       status: "extracted",
+      stage: "Complete",
+      processingTime: durationMs,
       manualEntryAllowed: true,
       confidence: 0.95,
     });
