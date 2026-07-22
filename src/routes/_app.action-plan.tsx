@@ -339,10 +339,9 @@ function ActionPlanPage() {
                           };
                           const dietPlanOutput = generateDietPlan(engineInput);
                           const courseKey = k === "breakfast" ? "breakfast" : k === "lunch" ? "lunch" : k === "snacks" ? "snacks" : "dinner";
-                          const rec = dietPlanOutput.meals[courseKey];
 
                           return weekdays.map((day, i) => {
-                            const meal = personalized?.dietPlan[day]?.[k];
+                            const dayMeal = dietPlanOutput.weeklyPlan[day]?.[courseKey] || dietPlanOutput.meals[courseKey];
                             return (
                               <div
                                 key={i}
@@ -353,14 +352,14 @@ function ActionPlanPage() {
                                     {tr(day, currentLang)}
                                   </div>
                                   <div className="mt-1 text-xs font-semibold leading-relaxed text-foreground">
-                                    {rec.meal || meal?.name || "Healthy Choice"}
+                                    {dayMeal.meal}
                                   </div>
                                   <div className="mt-1 text-[11px] text-muted-foreground leading-normal italic">
-                                    {rec.reason}
+                                    {dayMeal.reason}
                                   </div>
                                 </div>
                                 <div className="mt-2 pt-2 border-t border-border/30 text-[10px] text-teal font-medium">
-                                  {rec.expectedBenefit}
+                                  {dayMeal.expectedBenefit}
                                 </div>
                               </div>
                             );

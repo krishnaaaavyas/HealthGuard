@@ -203,8 +203,8 @@ export function generateWorkoutPlan(input: WorkoutEngineInput): WorkoutEngineOut
     primaryExerciseName = "Brisk Walking";
   }
 
-  // Derive Clinical Reason & Expected Benefit
-  let clinicalReason = "Low baseline activity level.";
+  // Derive Clinical Reason & Expected Benefit (Evidence-Driven)
+  let clinicalReason = "Low reported physical activity.";
   let expectedBenefit = "Improves cardiovascular endurance and aerobic fitness.";
 
   if (isDiabetic) {
@@ -217,15 +217,14 @@ export function generateWorkoutPlan(input: WorkoutEngineInput): WorkoutEngineOut
     clinicalReason = "BMI in obesity range requires low-impact metabolic activation.";
     expectedBenefit = "Increases daily caloric expenditure while protecting knee joints.";
   } else if (isSedentary) {
-    clinicalReason = "Sedentary lifestyle habits.";
+    clinicalReason = "Low reported physical activity.";
     expectedBenefit = "Establishes baseline aerobic conditioning and metabolic stamina.";
+  } else {
+    clinicalReason = "Baseline activity maintenance.";
+    expectedBenefit = "Maintains metabolic health and cardiorespiratory fitness.";
   }
 
   // Progressive 4-Week Adaptation Calculation
-  // Week 1: Baseline duration (15-20 min), 3 days/week
-  // Week 2: +5 min duration, 3 days/week
-  // Week 3: +5 min duration, 4 days/week
-  // Week 4: Target capacity (+5 min), 4-5 days/week
   const baseMinutes = isSedentary ? 15 : isLight ? 20 : 25;
 
   const w1Min = baseMinutes;
@@ -233,12 +232,13 @@ export function generateWorkoutPlan(input: WorkoutEngineInput): WorkoutEngineOut
   const w3Min = baseMinutes + 10;
   const w4Min = baseMinutes + 15;
 
-  const w1Freq = isSedentary ? "3 days/week" : "3 days/week";
+  const w1Freq = "3 days/week";
   const w2Freq = isSedentary ? "3 days/week" : "4 days/week";
   const w3Freq = "4 days/week";
   const w4Freq = isSedentary ? "4 days/week" : "5 days/week";
 
-  const buildRec = (min: number, freq: string): ExerciseRecommendation => ({
+  // Week 1: Aerobic Base (e.g. Walking)
+  const cardioRec = (min: number, freq: string): ExerciseRecommendation => ({
     exercise: primaryExerciseName,
     duration: `${min} min`,
     frequency: freq,
@@ -246,24 +246,42 @@ export function generateWorkoutPlan(input: WorkoutEngineInput): WorkoutEngineOut
     expectedBenefit: expectedBenefit,
   });
 
-  const secondaryExerciseName = hasJointRestriction ? "Supported Chair Squats & Glute Bridges" : "Resistance Band Upper Body Press";
+  // Week 2: Mobility Addition
+  const mobilityRec: ExerciseRecommendation = {
+    exercise: "Gentle Hatha Yoga & Spine Mobility",
+    duration: "15 min",
+    frequency: "2 days/week",
+    reason: "Improves joint flexibility and reduces spinal muscle tension.",
+    expectedBenefit: "Enhances joint range of motion and lowers stress cortisol.",
+  };
 
-  const secondaryRec = (min: number, freq: string): ExerciseRecommendation => ({
+  // Week 3: Resistance Addition
+  const secondaryExerciseName = hasJointRestriction ? "Supported Chair Squats & Glute Bridges" : "Resistance Band Upper Body Press";
+  const resistanceRec = (min: number): ExerciseRecommendation => ({
     exercise: secondaryExerciseName,
     duration: `${Math.max(10, min - 5)} min`,
     frequency: "2 days/week",
     reason: "Complements aerobic exercise with joint-friendly muscular strength.",
-    expectedBenefit: "Maintains muscle mass and bone mineral density.",
+    expectedBenefit: "Maintains muscle mass and improves glucose disposal.",
   });
+
+  // Week 4: Balance & Core Addition
+  const balanceRec: ExerciseRecommendation = {
+    exercise: "Single-Leg Balance & Core Stability",
+    duration: "10 min",
+    frequency: "2 days/week",
+    reason: "Enhances postural balance and joint stability.",
+    expectedBenefit: "Improves functional balance, coordination, and fall prevention.",
+  };
 
   return {
     status: "safe",
-    summary: `Progressive 4-week workout plan tailored for ${primaryExerciseName.toLowerCase()} and metabolic conditioning.`,
+    summary: `Progressive 4-week workout plan starting with ${primaryExerciseName.toLowerCase()} and expanding into mobility, resistance, and balance.`,
     weeks: {
-      week1: [buildRec(w1Min, w1Freq)],
-      week2: [buildRec(w2Min, w2Freq)],
-      week3: [buildRec(w3Min, w3Freq), secondaryRec(w3Min, w3Freq)],
-      week4: [buildRec(w4Min, w4Freq), secondaryRec(w4Min, w4Freq)],
+      week1: [cardioRec(w1Min, w1Freq)],
+      week2: [cardioRec(w2Min, w2Freq), mobilityRec],
+      week3: [cardioRec(w3Min, w3Freq), resistanceRec(w3Min)],
+      week4: [cardioRec(w4Min, w4Freq), resistanceRec(w4Min), balanceRec],
     },
     safetyNotes: hasJointRestriction
       ? ["High-impact exercises excluded due to reported joint/knee discomfort."]

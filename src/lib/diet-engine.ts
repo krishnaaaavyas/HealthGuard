@@ -41,10 +41,22 @@ export interface DietEngineInput {
   [key: string]: any;
 }
 
+export interface WeeklyDietPlan {
+  mon: DailyDietPlan;
+  tue: DailyDietPlan;
+  wed: DailyDietPlan;
+  thu: DailyDietPlan;
+  fri: DailyDietPlan;
+  sat: DailyDietPlan;
+  sun: DailyDietPlan;
+  [key: string]: DailyDietPlan;
+}
+
 export interface DietEngineOutput {
   strategy: DietStrategy;
   strategyReason: string;
   meals: DailyDietPlan;
+  weeklyPlan: WeeklyDietPlan;
   constraintsApplied: {
     dietType: string;
     allergies: string[];
@@ -482,6 +494,154 @@ export const REUSABLE_MEAL_CATALOG: MealTemplate[] = [
       },
     },
   },
+
+  // ─── ADDITIONAL BREAKFAST VARIATIONS ───
+  {
+    name: "Besan Chilla",
+    course: "breakfast",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Heart-Healthy / Lipid Control", "Low Sodium", "Balanced Wellness"],
+    types: ["vegetarian", "vegan", "satvik", "jain", "no-onion-garlic"],
+    contains: [],
+    reasons: {
+      "Low Glycemic": { reason: "Chickpea flour pancake rich in complex protein.", expectedBenefit: "Stabilizes glucose levels." },
+      "Calorie Deficit": { reason: "High-protein low-fat breakfast.", expectedBenefit: "Sustains satiety." },
+      "Heart-Healthy / Lipid Control": { reason: "Soluble fiber legume base.", expectedBenefit: "Supports clear arteries." },
+      "Low Sodium": { reason: "Spiced with herbs instead of salt.", expectedBenefit: "Helps regulate blood pressure." },
+      "Balanced Wellness": { reason: "Plant-based protein source.", expectedBenefit: "Boosts morning metabolism." },
+    },
+  },
+  {
+    name: "Vegetable Upma",
+    course: "breakfast",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Low Sodium", "Balanced Wellness"],
+    types: ["vegetarian", "vegan", "satvik", "jain", "no-onion-garlic"],
+    contains: ["gluten"],
+    reasons: {
+      "Low Glycemic": { reason: "Fiber-rich semolina with diced vegetables.", expectedBenefit: "Slower digestive breakdown." },
+      "Calorie Deficit": { reason: "Light vegetable-filled morning grain.", expectedBenefit: "Controlled caloric density." },
+      "Heart-Healthy / Lipid Control": { reason: "Low saturated fat preparation.", expectedBenefit: "Cardiovascular friendly." },
+      "Low Sodium": { reason: "Mildly spiced without excess salt.", expectedBenefit: "Maintains fluid balance." },
+      "Balanced Wellness": { reason: "Traditional vegetable semolina breakfast.", expectedBenefit: "Provides morning energy." },
+    },
+  },
+  {
+    name: "Paneer Bhurji with Toast",
+    course: "breakfast",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Balanced Wellness"],
+    types: ["vegetarian"],
+    contains: ["paneer", "milk", "gluten"],
+    reasons: {
+      "Low Glycemic": { reason: "Protein-rich cottage cheese crumble.", expectedBenefit: "Zero glycemic spike." },
+      "Calorie Deficit": { reason: "High satiety protein dish.", expectedBenefit: "Reduces mid-morning cravings." },
+      "Heart-Healthy / Lipid Control": { reason: "Calcium and casein protein.", expectedBenefit: "Supports metabolic health." },
+      "Low Sodium": { reason: "Light herb seasoning.", expectedBenefit: "Controlled sodium intake." },
+      "Balanced Wellness": { reason: "Nutrient-dense breakfast.", expectedBenefit: "Sustained cellular repair." },
+    },
+  },
+
+  // ─── ADDITIONAL LUNCH VARIATIONS ───
+  {
+    name: "Millet Roti + Dal",
+    course: "lunch",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Heart-Healthy / Lipid Control", "Low Sodium", "Balanced Wellness"],
+    types: ["vegetarian", "vegan", "satvik", "jain", "no-onion-garlic"],
+    contains: [],
+    reasons: {
+      "Low Glycemic": { reason: "Complex millet carbs paired with lentil protein.", expectedBenefit: "Slow glucose absorption." },
+      "Calorie Deficit": { reason: "High fiber grain and pulse meal.", expectedBenefit: "Keeps fullness prolonged." },
+      "Heart-Healthy / Lipid Control": { reason: "Magnesium and fiber rich combination.", expectedBenefit: "Supports arterial wellness." },
+      "Low Sodium": { reason: "Low salt lentil soup with millet flatbread.", expectedBenefit: "Maintains optimal BP." },
+      "Balanced Wellness": { reason: "Traditional whole grain Indian thali.", expectedBenefit: "Complete nutrition balance." },
+    },
+  },
+  {
+    name: "Moong Dal Khichdi",
+    course: "lunch",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Low Sodium", "Balanced Wellness"],
+    types: ["vegetarian", "vegan", "satvik", "jain", "no-onion-garlic"],
+    contains: [],
+    reasons: {
+      "Low Glycemic": { reason: "Balanced pulse-grain ratio.", expectedBenefit: "Steady energy without insulin spike." },
+      "Calorie Deficit": { reason: "Comforting high-volume meal.", expectedBenefit: "Fills without heavy calories." },
+      "Heart-Healthy / Lipid Control": { reason: "Zero cholesterol meal.", expectedBenefit: "Eases digestive burden." },
+      "Low Sodium": { reason: "Gently spiced with low salt.", expectedBenefit: "Helps maintain normal blood pressure." },
+      "Balanced Wellness": { reason: "Easily digestible complete protein.", expectedBenefit: "Restores gut balance." },
+    },
+  },
+  {
+    name: "Rajma Rice with Salad",
+    course: "lunch",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Heart-Healthy / Lipid Control", "Balanced Wellness"],
+    types: ["vegetarian", "vegan"],
+    contains: ["onion", "garlic"],
+    reasons: {
+      "Low Glycemic": { reason: "Kidney beans are rich in resistant starch.", expectedBenefit: "Protects against rapid sugar spikes." },
+      "Calorie Deficit": { reason: "High fiber and plant protein pulse.", expectedBenefit: "Long-lasting fullness." },
+      "Heart-Healthy / Lipid Control": { reason: "Soluble pulse fiber lowers cholesterol.", expectedBenefit: "Supports cardiovascular health." },
+      "Low Sodium": { reason: "Balanced spice seasoning.", expectedBenefit: "Keeps sodium in safe range." },
+      "Balanced Wellness": { reason: "Protein-rich comfort bowl.", expectedBenefit: "Supports muscle & metabolic health." },
+    },
+  },
+
+  // ─── ADDITIONAL SNACK VARIATIONS ───
+  {
+    name: "Sprouts Salad",
+    course: "snacks",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Heart-Healthy / Lipid Control", "Low Sodium", "Balanced Wellness"],
+    types: ["vegetarian", "vegan", "satvik", "jain", "no-onion-garlic"],
+    contains: [],
+    reasons: {
+      "Low Glycemic": { reason: "Sprouted pulses are low in GI and rich in active enzymes.", expectedBenefit: "Keeps glucose stable." },
+      "Calorie Deficit": { reason: "Very low calorie volume snack.", expectedBenefit: "Aids weight loss." },
+      "Heart-Healthy / Lipid Control": { reason: "High in antioxidants and vitamin C.", expectedBenefit: "Protects blood vessels." },
+      "Low Sodium": { reason: "Lemon juice dressing.", expectedBenefit: "Zero added sodium." },
+      "Balanced Wellness": { reason: "Living sprout nutrients.", expectedBenefit: "Enhances vitality." },
+    },
+  },
+  {
+    name: "Boiled Black Chana",
+    course: "snacks",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Heart-Healthy / Lipid Control", "Low Sodium", "Balanced Wellness"],
+    types: ["vegetarian", "vegan", "satvik", "jain", "no-onion-garlic"],
+    contains: [],
+    reasons: {
+      "Low Glycemic": { reason: "Black chickpeas have extremely low glycemic response.", expectedBenefit: "Prevents evening fatigue." },
+      "Calorie Deficit": { reason: "High fiber legume snack.", expectedBenefit: "Eliminates unhealthy cravings." },
+      "Heart-Healthy / Lipid Control": { reason: "Rich in soluble fiber.", expectedBenefit: "Maintains healthy lipids." },
+      "Low Sodium": { reason: "Lightly seasoned with cumin.", expectedBenefit: "Supports blood pressure." },
+      "Balanced Wellness": { reason: "High iron and plant protein.", expectedBenefit: "Supports hemoglobin levels." },
+    },
+  },
+
+  // ─── ADDITIONAL DINNER VARIATIONS ───
+  {
+    name: "Paneer + Vegetables",
+    course: "dinner",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Heart-Healthy / Lipid Control", "Low Sodium", "Balanced Wellness"],
+    types: ["vegetarian"],
+    contains: ["paneer", "milk"],
+    reasons: {
+      "Low Glycemic": { reason: "Sauteed cottage cheese with high-fiber greens.", expectedBenefit: "Prevents late glucose rise." },
+      "Calorie Deficit": { reason: "Low carb, high protein dinner.", expectedBenefit: "Supports overnight fat burn." },
+      "Heart-Healthy / Lipid Control": { reason: "Calcium and bioavailable protein.", expectedBenefit: "Supports cardiac recovery." },
+      "Low Sodium": { reason: "Herb and pepper seasoning.", expectedBenefit: "Controls nighttime BP strain." },
+      "Balanced Wellness": { reason: "Nutrient-rich evening meal.", expectedBenefit: "Aids muscle restoration." },
+    },
+  },
+  {
+    name: "Lauki Sabzi with Jowar Roti",
+    course: "dinner",
+    strategies: ["Low Glycemic", "Calorie Deficit", "Low Sodium", "Balanced Wellness"],
+    types: ["vegetarian", "vegan", "satvik", "jain", "no-onion-garlic"],
+    contains: [],
+    reasons: {
+      "Low Glycemic": { reason: "Hydrating bottle gourd with sorghum flatbread.", expectedBenefit: "Gentle glucose impact." },
+      "Calorie Deficit": { reason: "Exceptionally light evening meal.", expectedBenefit: "Promotes steady fat loss." },
+      "Heart-Healthy / Lipid Control": { reason: "High potassium and water content.", expectedBenefit: "Supports vascular tone." },
+      "Low Sodium": { reason: "Naturally low-sodium vegetable dish.", expectedBenefit: "Lowers fluid retention." },
+      "Balanced Wellness": { reason: "Soothing ayurvedic dinner.", expectedBenefit: "Promotes restful sleep." },
+    },
+  },
 ];
 
 /**
@@ -643,14 +803,14 @@ export function isMealConstraintCompliant(meal: MealTemplate, input: DietEngineI
 }
 
 /**
- * Populate Meal Recommendation for a Course
+ * Populate Meal Recommendation for a Course with Day Variation
  */
 export function populateMealForCourse(
   course: "breakfast" | "lunch" | "snacks" | "dinner",
   strategy: DietStrategy,
-  input: DietEngineInput
+  input: DietEngineInput,
+  dayIndex = 0
 ): MealRecommendation {
-  // 1. Filter catalog for course & strategy & constraint compliance
   const matches = REUSABLE_MEAL_CATALOG.filter((meal) => {
     if (meal.course !== course) return false;
     if (!meal.strategies.includes(strategy) && !meal.strategies.includes("Balanced Wellness")) return false;
@@ -658,12 +818,13 @@ export function populateMealForCourse(
   });
 
   if (matches.length === 0) {
-    // Try any compliant meal in course regardless of strategy
-    const anyCompliant = REUSABLE_MEAL_CATALOG.filter((meal) => meal.course === course && isMealConstraintCompliant(meal, input));
+    const anyCompliant = REUSABLE_MEAL_CATALOG.filter(
+      (meal) => meal.course === course && isMealConstraintCompliant(meal, input)
+    );
     if (anyCompliant.length === 0) {
       return FALLBACK_MEAL;
     }
-    const selected = anyCompliant[0];
+    const selected = anyCompliant[dayIndex % anyCompliant.length];
     const reasoning = selected.reasons[strategy] || selected.reasons["Balanced Wellness"];
     return {
       meal: selected.name,
@@ -672,7 +833,7 @@ export function populateMealForCourse(
     };
   }
 
-  const selected = matches[0];
+  const selected = matches[dayIndex % matches.length];
   const reasoning = selected.reasons[strategy] || selected.reasons["Balanced Wellness"];
 
   return {
@@ -688,20 +849,31 @@ export function populateMealForCourse(
 export function generateDietPlan(input: DietEngineInput): DietEngineOutput {
   const { strategy, reason: strategyReason } = selectDietStrategy(input);
 
-  const breakfast = populateMealForCourse("breakfast", strategy, input);
-  const lunch = populateMealForCourse("lunch", strategy, input);
-  const snacks = populateMealForCourse("snacks", strategy, input);
-  const dinner = populateMealForCourse("dinner", strategy, input);
+  const weekdays = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+  const weeklyPlan: WeeklyDietPlan = {
+    mon: { breakfast: FALLBACK_MEAL, lunch: FALLBACK_MEAL, snacks: FALLBACK_MEAL, dinner: FALLBACK_MEAL },
+    tue: { breakfast: FALLBACK_MEAL, lunch: FALLBACK_MEAL, snacks: FALLBACK_MEAL, dinner: FALLBACK_MEAL },
+    wed: { breakfast: FALLBACK_MEAL, lunch: FALLBACK_MEAL, snacks: FALLBACK_MEAL, dinner: FALLBACK_MEAL },
+    thu: { breakfast: FALLBACK_MEAL, lunch: FALLBACK_MEAL, snacks: FALLBACK_MEAL, dinner: FALLBACK_MEAL },
+    fri: { breakfast: FALLBACK_MEAL, lunch: FALLBACK_MEAL, snacks: FALLBACK_MEAL, dinner: FALLBACK_MEAL },
+    sat: { breakfast: FALLBACK_MEAL, lunch: FALLBACK_MEAL, snacks: FALLBACK_MEAL, dinner: FALLBACK_MEAL },
+    sun: { breakfast: FALLBACK_MEAL, lunch: FALLBACK_MEAL, snacks: FALLBACK_MEAL, dinner: FALLBACK_MEAL },
+  };
+
+  weekdays.forEach((day, index) => {
+    weeklyPlan[day] = {
+      breakfast: populateMealForCourse("breakfast", strategy, input, index),
+      lunch: populateMealForCourse("lunch", strategy, input, index),
+      snacks: populateMealForCourse("snacks", strategy, input, index),
+      dinner: populateMealForCourse("dinner", strategy, input, index),
+    };
+  });
 
   return {
     strategy,
     strategyReason,
-    meals: {
-      breakfast,
-      lunch,
-      snacks,
-      dinner,
-    },
+    meals: weeklyPlan.mon,
+    weeklyPlan,
     constraintsApplied: {
       dietType: input.dietType || "vegetarian",
       allergies: input.allergies || [],

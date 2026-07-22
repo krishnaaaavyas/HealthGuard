@@ -161,6 +161,8 @@ describe("Deterministic Diet Recommendation Engine", () => {
         "rice",
         "upma",
         "thepla",
+        "sprouts",
+        "salad",
       ],
     };
 
