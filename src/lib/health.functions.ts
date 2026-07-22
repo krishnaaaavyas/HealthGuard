@@ -421,6 +421,23 @@ export async function assessIngredientsImage({
   mimeType: string;
 }): Promise<IngredientReport> {
   const normMime = (mimeType || "").toLowerCase();
+  if (!base64Image || base64Image.trim().length === 0) {
+    return {
+      name: "Empty Image File",
+      score: 0,
+      goodIngredients: [],
+      watchOut: [],
+      diabetesImpact: "",
+      bloodPressureImpact: "",
+      heartHealthImpact: "",
+      recommendation: "",
+      status: "extraction-unavailable",
+      reasonCode: "IMAGE_EMPTY",
+      manualEntryAllowed: true,
+      message: "Uploaded image file is empty.",
+    };
+  }
+
   if (normMime.includes("heic") || normMime.includes("heif")) {
     return {
       name: "Unsupported File Format",
@@ -432,7 +449,7 @@ export async function assessIngredientsImage({
       heartHealthImpact: "",
       recommendation: "",
       status: "extraction-unavailable",
-      reasonCode: "SCANNER_FILE_UNSUPPORTED",
+      reasonCode: "UNSUPPORTED_FORMAT",
       manualEntryAllowed: true,
       message: "HEIC/HEIF image format is not supported. Please upload a JPEG, PNG, or WebP image.",
     };

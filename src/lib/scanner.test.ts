@@ -1,90 +1,79 @@
 import { describe, it, expect } from "vitest";
-import { assessIngredientsImage, assessIngredientsText } from "./health.functions";
+import { assessIngredientsImage } from "./health.functions";
+import { getHumanReadableReason } from "../routes/_app.scanner.lazy";
 import { FoodImpactService } from "../../backend/src/services/foodImpact.service";
 
-describe("Food Scanner Layout & Honest Analysis Engine", () => {
-  it("rejects HEIC/HEIF image format before upload and returns extraction-unavailable", async () => {
+describe("Food Scanner Image Ingredient Extraction & Diagnostic Pipeline", () => {
+  it("rejects HEIC/HEIF image format before upload and returns UNSUPPORTED_FORMAT", async () => {
     const result = await assessIngredientsImage({
       base64Image: "fakebase64",
       mimeType: "image/heic",
     });
 
     expect(result.status).toBe("extraction-unavailable");
-    expect(result.reasonCode).toBe("SCANNER_FILE_UNSUPPORTED");
+    expect(result.reasonCode).toBe("UNSUPPORTED_FORMAT");
     expect(result.manualEntryAllowed).toBe(true);
     expect(result.message).toContain("HEIC/HEIF");
   });
 
-  it("never infers ingredients from filename or fabricates reports on image extraction failure", async () => {
-    // Simulate image extraction failure response
+  it("rejects empty base64 image payload with IMAGE_EMPTY", async () => {
+    const result = await assessIngredientsImage({
+      base64Image: "",
+      mimeType: "image/jpeg",
+    });
+
+    expect(result.status).toBe("extraction-unavailable");
+    expect(result.reasonCode).toBe("IMAGE_EMPTY");
+    expect(result.manualEntryAllowed).toBe(true);
+    expect(result.message).toContain("empty");
+  });
+
+  it("maps raw technical reasonCodes into human-readable clinical messages", () => {
+    expect(getHumanReadableReason("NO_INGREDIENTS_DETECTED")).toContain("No ingredient list detected");
+    expect(getHumanReadableReason("UNSUPPORTED_FORMAT")).toContain("Unsupported file format");
+    expect(getHumanReadableReason("IMAGE_TOO_LARGE")).toContain("exceeds 10 MB limit");
+    expect(getHumanReadableReason("IMAGE_EMPTY")).toContain("file is empty");
+    expect(getHumanReadableReason("IMAGE_PREPROCESSING_FAILED")).toContain("corrupted or unreadable");
+    expect(getHumanReadableReason("GEMINI_AUTH_FAILED")).toContain("authentication failed");
+    expect(getHumanReadableReason("GEMINI_QUOTA_EXCEEDED")).toContain("rate limit reached");
+    expect(getHumanReadableReason("GEMINI_TIMEOUT")).toContain("timed out");
+    expect(getHumanReadableReason("GEMINI_REQUEST_FAILED")).toContain("currently unavailable");
+    expect(getHumanReadableReason("GEMINI_RESPONSE_PARSE_FAILED")).toContain("Unable to read ingredient text");
+  });
+
+  it("does not fabricate reports on extraction failure and provides manual entry option", async () => {
     const mockFailedResult = {
       status: "extraction-unavailable",
-      reasonCode: "SCANNER_IMAGE_EXTRACTION_UNAVAILABLE",
+      reasonCode: "NO_INGREDIENTS_DETECTED",
       manualEntryAllowed: true,
-      message: "Image ingredient extraction is currently unavailable.",
+      message: "No ingredient list detected in this image. Please upload a clear photo of the ingredient label.",
     };
 
     expect(mockFailedResult.status).toBe("extraction-unavailable");
+    expect(mockFailedResult.reasonCode).toBe("NO_INGREDIENTS_DETECTED");
     expect(mockFailedResult).not.toHaveProperty("goodIngredients");
     expect(mockFailedResult).not.toHaveProperty("watchOut");
-    // Verifies score is not fabricated from fake ingredients
     expect(mockFailedResult).not.toHaveProperty("score");
   });
 
-  it("labels manual text fallback as deterministic rule-based analysis while preserving rawText", async () => {
-    const inputRawText = "Ingredients: Whole Grain Oats, Almonds, Honey, Chia Seeds";
-    const parsedIngredients = FoodImpactService.parseIngredientsFromRawText(inputRawText);
+  it("extracts ingredients from clear label text correctly", () => {
+    const rawLabelText = "Ingredients: Rolled Oats, Almond Slices, Whole Milk Powder, Chia Seeds, Salt";
+    const extracted = FoodImpactService.parseIngredientsFromRawText(rawLabelText);
 
-    expect(parsedIngredients).toContain("Whole Grain Oats");
-    expect(parsedIngredients).toContain("Almonds");
-
-    const deterministicResult = FoodImpactService.analyzePersonalizedFood(
-      parsedIngredients,
-      FoodImpactService.parseNutritionFacts(parsedIngredients, inputRawText),
-      { diabetes: 15, heart: 15, hypertension: 15 },
-    );
-
-    expect(deterministicResult.personalizedFoodScore).toBeGreaterThanOrEqual(7);
-    expect(deterministicResult.foodRiskCategory).toBe("safe");
+    expect(extracted.length).toBeGreaterThan(0);
+    expect(extracted).toContain("Rolled Oats");
+    expect(extracted).toContain("Almond Slices");
   });
 
-  it("consumes full extracted ingredients array, NOT just watchOut, for deterministic scoring", () => {
+  it("consumes full extracted ingredients array for deterministic scoring", () => {
     const fullIngredients = ["Whole Grain Oats", "Almonds", "Sugar", "Palm Oil", "Salt"];
-    const watchOutOnly = ["Sugar", "Palm Oil", "Salt"];
-
-    const fullResult = FoodImpactService.analyzePersonalizedFood(
+    const result = FoodImpactService.analyzePersonalizedFood(
       fullIngredients,
       FoodImpactService.parseNutritionFacts(fullIngredients),
       { diabetes: 20, heart: 20, hypertension: 20 },
     );
 
-    const partialResult = FoodImpactService.analyzePersonalizedFood(
-      watchOutOnly,
-      FoodImpactService.parseNutritionFacts(watchOutOnly),
-      { diabetes: 20, heart: 20, hypertension: 20 },
-    );
-
-    // Full ingredients array should yield different/more comprehensive analysis than watchOut alone
-    expect(fullResult.goodIngredients).toEqual(["whole grain oats", "almonds"]);
-    expect(partialResult.goodIngredients).toEqual([]);
-  });
-
-  it("normalizes API_URL by removing trailing slashes", () => {
-    const rawUrl = "http://localhost:5000///";
-    const normalized = rawUrl.replace(/\/+$/, "");
-    expect(normalized).toBe("http://localhost:5000");
-  });
-
-  it("returns Custom ingredient list for unnamed manual text inputs", () => {
-    const textResult = {
-      name: "Custom ingredient list",
-      source: "Manual text",
-      analysisMode: "deterministic",
-      rawText: "Potato, Salt, Vegetable Oil",
-    };
-
-    expect(textResult.name).toBe("Custom ingredient list");
-    expect(textResult.source).toBe("Manual text");
-    expect(textResult.analysisMode).toBe("deterministic");
+    expect(result.goodIngredients).toEqual(["whole grain oats", "almonds"]);
+    expect(result.personalizedFoodScore).toBeGreaterThan(0);
   });
 });

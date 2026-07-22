@@ -20,6 +20,8 @@ import { validateLabUpload } from "./services/labUploadValidation.service.js";
 import { evaluateLegacyShadow } from "./modules/assessment/health-engine-v2-shadow.service.js";
 import { validateProductionConfig, getSystemReadiness } from "./services/startupValidation.js";
 
+import sharp from "sharp";
+
 dotenv.config();
 validateProductionConfig();
 
@@ -32,6 +34,7 @@ const labMaxBytes = Number.isFinite(configuredLabMaxBytes) && configuredLabMaxBy
   ? configuredLabMaxBytes
   : 10 * 1024 * 1024;
 app.use("/api/lab-report/analyze", express.json({ limit: `${Math.max(labMaxBytes * 2, 1024)}b` }));
+app.use(["/api/scanner/analyze", "/api/food/analyze"], express.json({ limit: "15mb" }));
 app.use(express.json({ limit: "1mb" }));
 
 // Mount Expert Review Routes
@@ -1290,17 +1293,104 @@ app.post(
         hypertension: riskAnalysis ? riskAnalysis.hypertensionRisk.risk : 15,
       };
 
+      const requestMode = mode || (contents && contents.some((c: any) => c?.parts?.some((p: any) => p?.inlineData)) ? "image" : "text");
       let result: any = null;
       const key = process.env.GEMINI_API_KEY;
 
-      if (
-        contents &&
-        contents.length > 0 &&
-        key &&
-        key !== "YOUR_GEMINI_API_KEY" &&
-        !key.includes("placeholder")
-      ) {
-        // Run Multimodal Gemini Scanner with profile data
+      if (requestMode === "image") {
+        console.log(`[FoodScanner] Image extraction request received for user ${uid}`);
+
+        // Pre-validate image contents payload
+        const inlinePart = contents
+          ?.flatMap((entry: any) => (Array.isArray(entry?.parts) ? entry.parts.filter((p: any) => p?.inlineData) : []))?.[0]?.inlineData;
+
+        if (!inlinePart || !inlinePart.data || typeof inlinePart.data !== "string" || inlinePart.data.trim().length === 0) {
+          console.log("[FoodScanner] Validation failed: IMAGE_EMPTY (Missing or empty base64 data)");
+          return res.status(200).json({
+            status: "extraction-unavailable",
+            reasonCode: "IMAGE_EMPTY",
+            manualEntryAllowed: true,
+            message: "Uploaded image file is empty.",
+          });
+        }
+
+        const mimeType = (inlinePart.mimeType || "").toLowerCase();
+        if (mimeType.includes("heic") || mimeType.includes("heif")) {
+          console.log(`[FoodScanner] Validation failed: UNSUPPORTED_FORMAT (HEIC format: ${mimeType})`);
+          return res.status(200).json({
+            status: "extraction-unavailable",
+            reasonCode: "UNSUPPORTED_FORMAT",
+            manualEntryAllowed: true,
+            message: "HEIC/HEIF image format is not supported. Please upload a JPEG, PNG, or WebP image.",
+          });
+        }
+
+        const supportedMimes = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/bmp"]);
+        if (mimeType && !supportedMimes.has(mimeType)) {
+          console.log(`[FoodScanner] Validation failed: UNSUPPORTED_FORMAT (Unaccepted MIME: ${mimeType})`);
+          return res.status(200).json({
+            status: "extraction-unavailable",
+            reasonCode: "UNSUPPORTED_FORMAT",
+            manualEntryAllowed: true,
+            message: "Unsupported file format. Please upload a JPEG, PNG, or WebP image.",
+          });
+        }
+
+        let buffer: Buffer;
+        try {
+          buffer = Buffer.from(inlinePart.data, "base64");
+          if (buffer.length === 0) throw new Error("Empty buffer");
+        } catch {
+          console.log("[FoodScanner] Preprocessing failed: IMAGE_EMPTY");
+          return res.status(200).json({
+            status: "extraction-unavailable",
+            reasonCode: "IMAGE_EMPTY",
+            manualEntryAllowed: true,
+            message: "Uploaded image buffer is empty or invalid base64.",
+          });
+        }
+
+        console.log(`[FoodScanner] Validation passed - Image size: ${buffer.length} bytes, MIME type: ${mimeType || "image/jpeg"}`);
+
+        if (buffer.length > 10 * 1024 * 1024) {
+          console.log(`[FoodScanner] Validation failed: IMAGE_TOO_LARGE (${buffer.length} bytes)`);
+          return res.status(200).json({
+            status: "extraction-unavailable",
+            reasonCode: "IMAGE_TOO_LARGE",
+            manualEntryAllowed: true,
+            message: "Image file size exceeds 10 MB limit. Please upload a smaller image.",
+          });
+        }
+
+        // Image Preprocessing Sharp decoding check
+        try {
+          const metadata = await sharp(buffer, { limitInputPixels: false }).metadata();
+          if (!metadata.width || !metadata.height) {
+            throw new Error("Invalid image dimensions");
+          }
+          console.log(`[FoodScanner] Image preprocessing passed - ${metadata.format} ${metadata.width}x${metadata.height}`);
+        } catch (err) {
+          console.log("[FoodScanner] Preprocessing failed: IMAGE_PREPROCESSING_FAILED", err);
+          return res.status(200).json({
+            status: "extraction-unavailable",
+            reasonCode: "IMAGE_PREPROCESSING_FAILED",
+            manualEntryAllowed: true,
+            message: "Selected image is corrupted or unreadable.",
+          });
+        }
+
+        // Check Gemini Authentication API Key
+        if (!key || key === "YOUR_GEMINI_API_KEY" || key.includes("placeholder")) {
+          console.log("[FoodScanner] Gemini request aborted: GEMINI_AUTH_FAILED (Missing or placeholder API key)");
+          return res.status(200).json({
+            status: "extraction-unavailable",
+            reasonCode: "GEMINI_AUTH_FAILED",
+            manualEntryAllowed: true,
+            message: "AI extraction service API key is unconfigured or invalid.",
+          });
+        }
+
+        console.log("[FoodScanner] Gemini request started...");
         const model = "gemini-2.5-flash";
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
 
@@ -1334,97 +1424,162 @@ Provide:
 10. "rawText": The raw extracted ingredients text.
 `;
 
-        // Construct request contents
-        const geminiContents = JSON.parse(JSON.stringify(contents));
-        let promptInserted = false;
-        for (const part of geminiContents) {
-          if (part.parts) {
-            for (const p of part.parts) {
-              if (p.text && p.text.toLowerCase().includes("ingredients")) {
-                p.text = personalizedPrompt;
-                promptInserted = true;
-              }
-            }
-          }
-        }
-        if (!promptInserted) {
-          geminiContents.push({
+        const geminiContents = [
+          {
             role: "user",
-            parts: [{ text: personalizedPrompt }],
+            parts: [
+              {
+                inlineData: {
+                  mimeType: mimeType || "image/jpeg",
+                  data: inlinePart.data,
+                },
+              },
+              {
+                text: personalizedPrompt,
+              },
+            ],
+          },
+        ];
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        try {
+          const geminiResp = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: controller.signal,
+            body: JSON.stringify({
+              contents: geminiContents,
+              generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    ingredients: { type: "array", items: { type: "string" } },
+                    goodIngredients: { type: "array", items: { type: "string" } },
+                    watchOut: { type: "array", items: { type: "string" } },
+                    diabetesImpact: { type: "string" },
+                    bloodPressureImpact: { type: "string" },
+                    heartHealthImpact: { type: "string" },
+                    recommendation: { type: "string" },
+                    alternatives: { type: "array", items: { type: "string" } },
+                    rawText: { type: "string" },
+                  },
+                  required: [
+                    "name",
+                    "ingredients",
+                    "goodIngredients",
+                    "watchOut",
+                    "diabetesImpact",
+                    "bloodPressureImpact",
+                    "heartHealthImpact",
+                    "recommendation",
+                    "alternatives",
+                    "rawText",
+                  ],
+                },
+                temperature: 0.2,
+              },
+            }),
+          });
+          clearTimeout(timeoutId);
+
+          if (geminiResp.status === 401 || geminiResp.status === 403) {
+            console.log(`[FoodScanner] Gemini request failed: GEMINI_AUTH_FAILED (Status ${geminiResp.status})`);
+            return res.status(200).json({
+              status: "extraction-unavailable",
+              reasonCode: "GEMINI_AUTH_FAILED",
+              manualEntryAllowed: true,
+              message: "AI extraction service API key is unauthorized or invalid.",
+            });
+          }
+
+          if (geminiResp.status === 429) {
+            console.log("[FoodScanner] Gemini request failed: GEMINI_QUOTA_EXCEEDED");
+            return res.status(200).json({
+              status: "extraction-unavailable",
+              reasonCode: "GEMINI_QUOTA_EXCEEDED",
+              manualEntryAllowed: true,
+              message: "AI extraction rate limit reached. Please try again in a few moments.",
+            });
+          }
+
+          if (!geminiResp.ok) {
+            const errText = await geminiResp.text();
+            console.log(`[FoodScanner] Gemini request failed: GEMINI_REQUEST_FAILED (Status ${geminiResp.status}): ${errText}`);
+            return res.status(200).json({
+              status: "extraction-unavailable",
+              reasonCode: "GEMINI_REQUEST_FAILED",
+              manualEntryAllowed: true,
+              message: "AI extraction service request failed.",
+            });
+          }
+
+          console.log("[FoodScanner] Gemini response received");
+          const geminiJson: any = await geminiResp.json();
+          const geminiText = geminiJson?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") ?? "";
+
+          if (!geminiText) {
+            console.log("[FoodScanner] Parser failed: GEMINI_RESPONSE_PARSE_FAILED (Empty response text)");
+            return res.status(200).json({
+              status: "extraction-unavailable",
+              reasonCode: "GEMINI_RESPONSE_PARSE_FAILED",
+              manualEntryAllowed: true,
+              message: "Vision model returned an empty response.",
+            });
+          }
+
+          try {
+            result = JSON.parse(geminiText);
+            console.log("[FoodScanner] JSON parsed successfully");
+          } catch (parseErr) {
+            console.log("[FoodScanner] JSON parsed failed: GEMINI_RESPONSE_PARSE_FAILED", parseErr);
+            return res.status(200).json({
+              status: "extraction-unavailable",
+              reasonCode: "GEMINI_RESPONSE_PARSE_FAILED",
+              manualEntryAllowed: true,
+              message: "Failed to parse structured ingredient data from vision model.",
+            });
+          }
+        } catch (fetchErr: any) {
+          clearTimeout(timeoutId);
+          if (fetchErr.name === "AbortError") {
+            console.log("[FoodScanner] Gemini request failed: GEMINI_TIMEOUT");
+            return res.status(200).json({
+              status: "extraction-unavailable",
+              reasonCode: "GEMINI_TIMEOUT",
+              manualEntryAllowed: true,
+              message: "AI extraction service timed out.",
+            });
+          }
+          console.log("[FoodScanner] Gemini request failed: GEMINI_REQUEST_FAILED", fetchErr);
+          return res.status(200).json({
+            status: "extraction-unavailable",
+            reasonCode: "GEMINI_REQUEST_FAILED",
+            manualEntryAllowed: true,
+            message: "AI extraction service call failed.",
           });
         }
 
-        const geminiResp = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: geminiContents,
-            generationConfig: {
-              responseMimeType: "application/json",
-              responseSchema: {
-                type: "object",
-                properties: {
-                  name: { type: "string" },
-                  ingredients: { type: "array", items: { type: "string" } },
-                  goodIngredients: { type: "array", items: { type: "string" } },
-                  watchOut: { type: "array", items: { type: "string" } },
-                  diabetesImpact: { type: "string" },
-                  bloodPressureImpact: { type: "string" },
-                  heartHealthImpact: { type: "string" },
-                  recommendation: { type: "string" },
-                  alternatives: { type: "array", items: { type: "string" } },
-                  rawText: { type: "string" },
-                },
-                required: [
-                  "name",
-                  "ingredients",
-                  "goodIngredients",
-                  "watchOut",
-                  "diabetesImpact",
-                  "bloodPressureImpact",
-                  "heartHealthImpact",
-                  "recommendation",
-                  "alternatives",
-                  "rawText",
-                ],
-              },
-              temperature: 0.2,
-            },
-          }),
-        });
+        // Ingredient Extraction Quality Validation
+        const extractedIngredients: string[] =
+          result?.ingredients && Array.isArray(result.ingredients) && result.ingredients.length > 0
+            ? result.ingredients
+            : FoodImpactService.parseIngredientsFromRawText(result?.rawText || "");
 
-        if (geminiResp.ok) {
-          const geminiJson: any = await geminiResp.json();
-          const geminiText =
-            geminiJson?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") ??
-            "";
-          if (geminiText) {
-            result = JSON.parse(geminiText);
-          }
-        } else {
-          const errText = await geminiResp.text();
-          console.warn("Gemini scanner call failed, falling back to deterministic:", errText);
+        console.log(`[FoodScanner] Ingredient count: ${extractedIngredients.length}`);
+
+        if (extractedIngredients.length === 0) {
+          console.log("[FoodScanner] Extraction quality check failed: NO_INGREDIENTS_DETECTED");
+          return res.status(200).json({
+            status: "extraction-unavailable",
+            reasonCode: "NO_INGREDIENTS_DETECTED",
+            manualEntryAllowed: true,
+            message: "No ingredient list detected in this image. Please upload a clear photo of the ingredient label or enter ingredients manually.",
+          });
         }
-      }
-
-      // Extract full ingredients list (NOT just watchOut!)
-      const extractedIngredients: string[] =
-        result?.ingredients && Array.isArray(result.ingredients) && result.ingredients.length > 0
-          ? result.ingredients
-          : ingredients && Array.isArray(ingredients) && ingredients.length > 0
-          ? ingredients
-          : FoodImpactService.parseIngredientsFromRawText(result?.rawText || rawText || "");
-
-      const requestMode = mode || (contents && contents.length > 0 ? "image" : "text");
-
-      // CRITICAL REQUIREMENT: Image failure without extracted ingredients must return structured extraction error
-      if (requestMode === "image" && extractedIngredients.length === 0) {
-        return res.status(200).json({
-          status: "extraction-unavailable",
-          reasonCode: "SCANNER_IMAGE_EXTRACTION_UNAVAILABLE",
-          manualEntryAllowed: true,
-          message: "Image ingredient extraction is currently unavailable. Please paste ingredients manually or select a preset.",
-        });
       }
 
       const foodName = result?.name || productName || (rawText ? "Custom ingredient list" : "Unknown Product");
